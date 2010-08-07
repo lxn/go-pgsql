@@ -192,7 +192,7 @@ func doPreparedStatementReaderTest(t *testing.T, test *prepStmtTest) {
 
 func idParameter(value int) *Parameter {
 	idParam := NewParameter("@id", Integer)
-	idParam.SetValue(int32(value))
+	idParam.SetValue(value)
 
 	return idParam
 }
