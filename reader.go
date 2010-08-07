@@ -251,40 +251,6 @@ func (r *Reader) Bool(ord int) (value, isNull bool, err os.Error) {
 	return
 }
 
-// Byte returns the value of the field with the specified ordinal as byte.
-func (r *Reader) Byte(ord int) (value byte, isNull bool, err os.Error) {
-	defer func() {
-		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
-		}
-	}()
-
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Byte"))
-	}
-
-	isNull, err = r.IsNull(ord)
-	if isNull || err != nil {
-		return
-	}
-
-	val := r.values[ord]
-
-	switch r.fields[ord].format {
-	case textFormat:
-		x, err := strconv.Atoi(string(val))
-		if err != nil {
-			panic(err)
-		}
-		value = byte(x)
-
-	case binaryFormat:
-		value = val[0]
-	}
-
-	return
-}
-
 // Float32 returns the value of the field with the specified ordinal as float32.
 func (r *Reader) Float32(ord int) (value float32, isNull bool, err os.Error) {
 	defer func() {
@@ -348,6 +314,23 @@ func (r *Reader) Float64(ord int) (value float64, isNull bool, err os.Error) {
 		value = math.Float64frombits(binary.BigEndian.Uint64(val))
 	}
 
+	return
+}
+
+// Float returns the value of the field with the specified ordinal as float.
+func (r *Reader) Float(ord int) (value float, isNull bool, err os.Error) {
+	defer func() {
+		if x := recover(); x != nil {
+			err = r.conn.logAndConvertPanic(x)
+		}
+	}()
+
+	if r.conn.LogLevel >= LogVerbose {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.Float"))
+	}
+
+	val, isNull, err := r.Float32(ord)
+	value = float(val)
 	return
 }
 
@@ -450,6 +433,23 @@ func (r *Reader) Int64(ord int) (value int64, isNull bool, err os.Error) {
 		value = int64(binary.BigEndian.Uint64(val))
 	}
 
+	return
+}
+
+// Int returns the value of the field with the specified ordinal as int.
+func (r *Reader) Int(ord int) (value int, isNull bool, err os.Error) {
+	defer func() {
+		if x := recover(); x != nil {
+			err = r.conn.logAndConvertPanic(x)
+		}
+	}()
+
+	if r.conn.LogLevel >= LogVerbose {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.Int"))
+	}
+
+	val, isNull, err := r.Int32(ord)
+	value = int(val)
 	return
 }
 
