@@ -4,9 +4,9 @@ This library is currently missing support for quite some features, including:
 -SSL encrypted sessions
 -multiple SQL commands per query
 -some data types like date/time, bytea, ...
--prepared statements
 -canceling commands/queries
 -bulk copy
+-...
 
 This library is (at least currently) not thread-safe,
 so for every goroutine that must talk to the same database,

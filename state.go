@@ -19,6 +19,12 @@ type state interface {
 	// authenticate sends a PasswordMessage packet to the server.
 	authenticate(conn *Conn, password string)
 
+	// closePortal sends a Close packet for the statements current portal to the server.
+	closePortal(stmt *Statement)
+
+	// closeStatement sends a Close packet for a statement to the server.
+	closeStatement(stmt *Statement)
+
 	// code returns the ConnStatus that matches the state.
 	code() ConnStatus
 
@@ -27,6 +33,15 @@ type state interface {
 
 	// disconnect sends a Terminate packet to the server and closes the network connection.
 	disconnect(conn *Conn)
+
+	// execute sends Bind and Execute packets to the server.
+	execute(stmt *Statement, reader *Reader)
+
+	// flush sends a Flush packet to the server.
+	flush(conn *Conn)
+
+	// prepare sends a Parse packet to the server.
+	prepare(stmt *Statement)
 
 	// processBackendMessages processes messages from the server.
 	processBackendMessages(conn *Conn, reader *Reader)
@@ -47,6 +62,14 @@ func (abstractState) authenticate(conn *Conn, password string) {
 	panic(invalidOpForStateMsg)
 }
 
+func (abstractState) closePortal(stmt *Statement) {
+	panic(invalidOpForStateMsg)
+}
+
+func (abstractState) closeStatement(stmt *Statement) {
+	panic(invalidOpForStateMsg)
+}
+
 func (abstractState) code() ConnStatus {
 	panic(invalidOpForStateMsg)
 }
@@ -59,12 +82,39 @@ func (abstractState) disconnect(conn *Conn) {
 	panic(invalidOpForStateMsg)
 }
 
+func (abstractState) execute(stmt *Statement, reader *Reader) {
+	panic(invalidOpForStateMsg)
+}
+
+func (abstractState) flush(conn *Conn) {
+	panic(invalidOpForStateMsg)
+}
+
+func (abstractState) prepare(stmt *Statement) {
+	panic(invalidOpForStateMsg)
+}
+
 func (abstractState) query(conn *Conn, reader *Reader, sql string) {
 	panic(invalidOpForStateMsg)
 }
 
 func (abstractState) startup(conn *Conn) {
 	panic(invalidOpForStateMsg)
+}
+
+func (state abstractState) close(conn *Conn, itemType byte, itemName string) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("abstractState.close"))
+	}
+
+	msgLen := int32(4 + 1 + len(itemName) + 1)
+
+	conn.writeFrontendMessageCode(_Close)
+	conn.writeInt32(msgLen)
+	conn.writeByte(itemType)
+	conn.writeString0(itemName)
+
+	conn.flush()
 }
 
 func (abstractState) processAuthenticationRequest(conn *Conn) {
@@ -143,6 +193,24 @@ func (abstractState) processBackendKeyData(conn *Conn) {
 
 	conn.backendPID = conn.readInt32()
 	conn.backendSecretKey = conn.readInt32()
+}
+
+func (abstractState) processBindComplete(conn *Conn) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("abstractState.processBindComplete"))
+	}
+
+	// Just eat message length.
+	conn.readInt32()
+}
+
+func (abstractState) processCloseComplete(conn *Conn) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("abstractState.processCloseComplete"))
+	}
+
+	// Just eat message length.
+	conn.readInt32()
 }
 
 func (abstractState) processCommandComplete(conn *Conn, reader *Reader) {
@@ -263,6 +331,15 @@ func (abstractState) processParameterStatus(conn *Conn) {
 	}
 }
 
+func (abstractState) processParseComplete(conn *Conn) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("abstractState.processParseComplete"))
+	}
+
+	// Just eat message length.
+	conn.readInt32()
+}
+
 func (abstractState) processReadyForQuery(conn *Conn) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("abstractState.processReadyForQuery"))
@@ -292,13 +369,11 @@ func (abstractState) processReadyForQuery(conn *Conn) {
 	conn.state = readyState{}
 }
 
-// processBackendMessages processes messages sent by the PostgreSQL server.
 func (state abstractState) processBackendMessages(conn *Conn, reader *Reader) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("abstractState.processBackendMessages"))
 	}
 
-	// Loop as long as required.
 	for {
 		msgCode := backendMessageCode(conn.readByte())
 
@@ -312,6 +387,13 @@ func (state abstractState) processBackendMessages(conn *Conn, reader *Reader) {
 
 		case _BackendKeyData:
 			state.processBackendKeyData(conn)
+
+		case _BindComplete:
+			state.processBindComplete(conn)
+			return
+
+		case _CloseComplete:
+			state.processCloseComplete(conn)
 
 		case _CommandComplete:
 			state.processCommandComplete(conn, reader)
@@ -331,6 +413,10 @@ func (state abstractState) processBackendMessages(conn *Conn, reader *Reader) {
 
 		case _ParameterStatus:
 			state.processParameterStatus(conn)
+
+		case _ParseComplete:
+			state.processParseComplete(conn)
+			return
 
 		case _ReadyForQuery:
 			state.processReadyForQuery(conn)

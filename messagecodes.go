@@ -10,27 +10,27 @@ type backendMessageCode byte
 
 const (
 	_AuthenticationRequest backendMessageCode = 'R'
-	_BackendKeyData        = 'K'
-	_BindComplete          = '2'
-	_CloseComplete         = '3'
-	_CommandComplete       = 'C'
-	_CopyData_BE           = 'd'
-	_CopyDone_BE           = 'c'
-	_CopyInResponse        = 'G'
-	_CopyOutResponse       = 'H'
-	_DataRow               = 'D'
-	_EmptyQueryResponse    = 'I'
-	_ErrorResponse         = 'E'
-	_FunctionCallResponse  = 'V'
-	_NoData                = 'n'
-	_NoticeResponse        = 'N'
-	_NotificationResponse  = 'A'
-	_ParameterDescription  = 't'
-	_ParameterStatus       = 'S'
-	_ParseComplete         = '1'
-	_PortalSuspended       = 's'
-	_ReadyForQuery         = 'Z'
-	_RowDescription        = 'T'
+	_BackendKeyData        backendMessageCode = 'K'
+	_BindComplete          backendMessageCode = '2'
+	_CloseComplete         backendMessageCode = '3'
+	_CommandComplete       backendMessageCode = 'C'
+	_CopyData_BE           backendMessageCode = 'd'
+	_CopyDone_BE           backendMessageCode = 'c'
+	_CopyInResponse        backendMessageCode = 'G'
+	_CopyOutResponse       backendMessageCode = 'H'
+	_DataRow               backendMessageCode = 'D'
+	_EmptyQueryResponse    backendMessageCode = 'I'
+	_ErrorResponse         backendMessageCode = 'E'
+	_FunctionCallResponse  backendMessageCode = 'V'
+	_NoData                backendMessageCode = 'n'
+	_NoticeResponse        backendMessageCode = 'N'
+	_NotificationResponse  backendMessageCode = 'A'
+	_ParameterDescription  backendMessageCode = 't'
+	_ParameterStatus       backendMessageCode = 'S'
+	_ParseComplete         backendMessageCode = '1'
+	_PortalSuspended       backendMessageCode = 's'
+	_ReadyForQuery         backendMessageCode = 'Z'
+	_RowDescription        backendMessageCode = 'T'
 )
 
 var backendMsgCode2String map[backendMessageCode]string
@@ -50,20 +50,20 @@ type frontendMessageCode byte
 
 const (
 	_Bind            frontendMessageCode = 'B'
-	_Close           = 'C'
-	_CopyData_FE     = 'd'
-	_CopyDone_FE     = 'c'
-	_CopyFail        = 'f'
-	_Describe        = 'D'
-	_Execute         = 'E'
-	_Flush           = 'H'
-	_FunctionCall    = 'F'
-	_Parse           = 'P'
-	_PasswordMessage = 'p'
-	_Query           = 'Q'
-	_SSLRequest      = '8'
-	_Sync            = 'S'
-	_Terminate       = 'X'
+	_Close           frontendMessageCode = 'C'
+	_CopyData_FE     frontendMessageCode = 'd'
+	_CopyDone_FE     frontendMessageCode = 'c'
+	_CopyFail        frontendMessageCode = 'f'
+	_Describe        frontendMessageCode = 'D'
+	_Execute         frontendMessageCode = 'E'
+	_Flush           frontendMessageCode = 'H'
+	_FunctionCall    frontendMessageCode = 'F'
+	_Parse           frontendMessageCode = 'P'
+	_PasswordMessage frontendMessageCode = 'p'
+	_Query           frontendMessageCode = 'Q'
+	_SSLRequest      frontendMessageCode = '8'
+	_Sync            frontendMessageCode = 'S'
+	_Terminate       frontendMessageCode = 'X'
 )
 
 var frontendMsgCode2String map[frontendMessageCode]string
@@ -83,13 +83,13 @@ type authenticationType int32
 
 const (
 	_AuthenticationOk                authenticationType = 0
-	_AuthenticationKerberosV5        = 2
-	_AuthenticationCleartextPassword = 3
-	_AuthenticationMD5Password       = 5
-	_AuthenticationSCMCredential     = 6
-	_AuthenticationGSS               = 7
-	_AuthenticationGSSContinue       = 8
-	_AuthenticationSSPI              = 9
+	_AuthenticationKerberosV5        authenticationType = 2
+	_AuthenticationCleartextPassword authenticationType = 3
+	_AuthenticationMD5Password       authenticationType = 5
+	_AuthenticationSCMCredential     authenticationType = 6
+	_AuthenticationGSS               authenticationType = 7
+	_AuthenticationGSSContinue       authenticationType = 8
+	_AuthenticationSSPI              authenticationType = 9
 )
 
 var authType2String map[authenticationType]string

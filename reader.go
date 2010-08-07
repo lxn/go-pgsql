@@ -28,6 +28,7 @@ type field struct {
 // Access is by 0-based field ordinal position.
 type Reader struct {
 	conn         *Conn
+	stmt         *Statement
 	rowsAffected int64
 	row          int64
 	name2ord     map[string]int
@@ -160,6 +161,10 @@ func (r *Reader) Close() (err os.Error) {
 
 	if r.conn.LogLevel >= LogDebug {
 		defer r.conn.logExit(r.conn.logEnter("*Reader.Close"))
+	}
+
+	if r.stmt != nil {
+		defer r.conn.state.closePortal(r.stmt)
 	}
 
 	// TODO: Instead of eating all records, try to cancel the query processing.

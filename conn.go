@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// The pgsql package partially implements a PostgreSQL frontend
-// for use with protocol version 3.0.
+// The pgsql package partially implements a PostgreSQL frontend library.
+// It is compatible with servers of version 7.4 and later.
 package pgsql
 
 import (
@@ -12,11 +12,13 @@ import (
 	"fmt"
 	"encoding/binary"
 	"log"
+	"math"
 	"net"
 	"os"
 	"runtime"
 )
 
+// LogLevel is used to control which messages are written to the log.
 type LogLevel int
 
 const (
@@ -36,6 +38,7 @@ type ConnParams struct {
 	Database string
 }
 
+// ConnStatus represents the status of a connection.
 type ConnStatus int
 
 const (
@@ -67,6 +70,7 @@ func (s ConnStatus) String() string {
 	return "Unknown"
 }
 
+// Conn represents a connection to a database on a PostgreSQL server.
 type Conn struct {
 	LogLevel         LogLevel
 	conn             net.Conn
@@ -226,6 +230,29 @@ func (conn *Conn) writeByte(b byte) {
 	}
 }
 
+func (conn *Conn) writeFloat32(f float32) {
+	var buf [4]byte
+	b := buf[0:]
+
+	binary.BigEndian.PutUint32(b, math.Float32bits(f))
+	conn.write(b)
+}
+
+func (conn *Conn) writeFloat64(f float64) {
+	var buf [8]byte
+	b := buf[0:]
+
+	binary.BigEndian.PutUint64(b, math.Float64bits(f))
+	conn.write(b)
+}
+
+func (conn *Conn) writeFrontendMessageCode(code frontendMessageCode) {
+	err := conn.writer.WriteByte(byte(code))
+	if err != nil {
+		panic(fmt.Sprintf("writeFrontendMessageCode failed: %s", err))
+	}
+}
+
 func (conn *Conn) writeInt16(i int16) {
 	var buf [2]byte
 	b := buf[0:]
@@ -239,6 +266,14 @@ func (conn *Conn) writeInt32(i int32) {
 	b := buf[0:]
 
 	binary.BigEndian.PutUint32(b, uint32(i))
+	conn.write(b)
+}
+
+func (conn *Conn) writeInt64(i int64) {
+	var buf [8]byte
+	b := buf[0:]
+
+	binary.BigEndian.PutUint64(b, uint64(i))
 	conn.write(b)
 }
 
@@ -301,10 +336,10 @@ func (conn *Conn) Open() (err os.Error) {
 }
 
 // Query sends a SQL query to the server and returns a
-// *pgsql.Reader for row-by-row retrieval of the results.
-// The returned reader must be closed before sending another
+// Reader for row-by-row retrieval of the results.
+// The returned Reader must be closed before sending another
 // query or command to the server over the same connection.
-func (conn *Conn) Query(sql string) (reader *Reader, err os.Error) {
+func (conn *Conn) Query(command string) (reader *Reader, err os.Error) {
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)
@@ -317,7 +352,7 @@ func (conn *Conn) Query(sql string) (reader *Reader, err os.Error) {
 
 	r := newReader(conn)
 
-	conn.state.query(conn, r, sql)
+	conn.state.query(conn, r, command)
 
 	reader = r
 
@@ -327,7 +362,7 @@ func (conn *Conn) Query(sql string) (reader *Reader, err os.Error) {
 // Execute sends a SQL command to the server and returns the number
 // of rows affected. If the results of a query are needed, use the
 // Query method instead.
-func (conn *Conn) Execute(sql string) (rowsAffected int64, err os.Error) {
+func (conn *Conn) Execute(command string) (rowsAffected int64, err os.Error) {
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)
@@ -338,7 +373,7 @@ func (conn *Conn) Execute(sql string) (rowsAffected int64, err os.Error) {
 		defer conn.logExit(conn.logEnter("*Conn.Execute"))
 	}
 
-	reader, err := conn.Query(sql)
+	reader, err := conn.Query(command)
 	if err != nil {
 		return
 	}
@@ -346,5 +381,26 @@ func (conn *Conn) Execute(sql string) (rowsAffected int64, err os.Error) {
 	err = reader.Close()
 
 	rowsAffected = reader.rowsAffected
+	return
+}
+
+// Prepare returns a new prepared Statement, optimized to be executed multiple
+// times with different parameter values.
+func (conn *Conn) Prepare(command string, params []*Parameter) (stmt *Statement, err os.Error) {
+	defer func() {
+		if x := recover(); x != nil {
+			err = conn.logAndConvertPanic(x)
+		}
+	}()
+
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.Prepare"))
+	}
+
+	statement := newStatement(conn, command, params)
+
+	conn.state.prepare(statement)
+
+	stmt = statement
 	return
 }

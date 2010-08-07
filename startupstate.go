@@ -17,7 +17,7 @@ func (startupState) authenticate(conn *Conn, password string) {
 
 	msgLen := int32(4 + len(password) + 1)
 
-	conn.writeByte(_PasswordMessage)
+	conn.writeFrontendMessageCode(_PasswordMessage)
 	conn.writeInt32(msgLen)
 	conn.writeString0(password)
 
