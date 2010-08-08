@@ -404,3 +404,34 @@ func (conn *Conn) Prepare(command string, params []*Parameter) (stmt *Statement,
 	stmt = statement
 	return
 }
+
+// WithTransaction starts a transaction, then calls function f.
+// If f returns an error or panicks, the transaction is rolled back,
+// otherwise it is committed.
+func (conn *Conn) WithTransaction(f func() os.Error) (err os.Error) {
+	defer func() {
+		if x := recover(); x != nil {
+			err = conn.logAndConvertPanic(x)
+		}
+		if err != nil {
+			conn.Execute("ROLLBACK;")
+		}
+	}()
+
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.WithTransaction"))
+	}
+
+	_, err = conn.Execute("BEGIN;")
+	if err != nil {
+		panic(err)
+	}
+
+	err = f()
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = conn.Execute("COMMIT;")
+	return
+}
