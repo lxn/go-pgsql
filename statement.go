@@ -136,15 +136,15 @@ func (stmt *Statement) IsClosed() bool {
 func (stmt *Statement) Close() (err os.Error) {
 	conn := stmt.conn
 
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Statement.Close"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Statement.Close"))
-	}
 
 	stmt.conn.state.closeStatement(stmt)
 
@@ -185,15 +185,15 @@ func (stmt *Statement) Command() string {
 func (stmt *Statement) Query() (reader *Reader, err os.Error) {
 	conn := stmt.conn
 
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Statement.Query"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Statement.Query"))
-	}
 
 	r := newReader(conn)
 
@@ -210,15 +210,15 @@ func (stmt *Statement) Query() (reader *Reader, err os.Error) {
 func (stmt *Statement) Execute() (rowsAffected int64, err os.Error) {
 	conn := stmt.conn
 
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Statement.Execute"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Statement.Execute"))
-	}
 
 	reader, err := stmt.Query()
 	if err != nil {

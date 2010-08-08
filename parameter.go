@@ -38,6 +38,10 @@ func (p *Parameter) Value() interface{} {
 
 // SetValue sets the current value of the Parameter.
 func (p *Parameter) SetValue(v interface{}) (err os.Error) {
+	if p.stmt != nil && p.stmt.conn.LogLevel >= LogVerbose {
+		defer p.stmt.conn.logExit(p.stmt.conn.logEnter("*Parameter.SetValue"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			if p.stmt == nil {
@@ -47,10 +51,6 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 			}
 		}
 	}()
-
-	if p.stmt != nil && p.stmt.conn.LogLevel >= LogVerbose {
-		defer p.stmt.conn.logExit(p.stmt.conn.logEnter("*Parameter.SetValue"))
-	}
 
 	switch p.typ {
 	case Bigint:

@@ -291,15 +291,15 @@ func (conn *Conn) writeString0(s string) {
 
 // Close closes the connection to the database.
 func (conn *Conn) Close() (err os.Error) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.Close"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.Close"))
-	}
 
 	if conn.Status() == StatusDisconnected {
 		err = os.NewError("connection already closed")
@@ -319,15 +319,15 @@ func (conn *Conn) Status() ConnStatus {
 
 // Open opens a database connection and waits until it is ready to issue commands.
 func (conn *Conn) Open() (err os.Error) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.Open"))
+	}
+	
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.Open"))
-	}
 
 	conn.state.connect(conn)
 	conn.state.startup(conn)
@@ -340,15 +340,15 @@ func (conn *Conn) Open() (err os.Error) {
 // The returned Reader must be closed before sending another
 // query or command to the server over the same connection.
 func (conn *Conn) Query(command string) (reader *Reader, err os.Error) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.Query"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.Query"))
-	}
 
 	r := newReader(conn)
 
@@ -363,15 +363,15 @@ func (conn *Conn) Query(command string) (reader *Reader, err os.Error) {
 // of rows affected. If the results of a query are needed, use the
 // Query method instead.
 func (conn *Conn) Execute(command string) (rowsAffected int64, err os.Error) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.Execute"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.Execute"))
-	}
 
 	reader, err := conn.Query(command)
 	if err != nil {
@@ -387,15 +387,15 @@ func (conn *Conn) Execute(command string) (rowsAffected int64, err os.Error) {
 // Prepare returns a new prepared Statement, optimized to be executed multiple
 // times with different parameter values.
 func (conn *Conn) Prepare(command string, params []*Parameter) (stmt *Statement, err os.Error) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.Prepare"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.Prepare"))
-	}
 
 	statement := newStatement(conn, command, params)
 
@@ -409,6 +409,10 @@ func (conn *Conn) Prepare(command string, params []*Parameter) (stmt *Statement,
 // If f returns an error or panicks, the transaction is rolled back,
 // otherwise it is committed.
 func (conn *Conn) WithTransaction(f func() os.Error) (err os.Error) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.WithTransaction"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)
@@ -417,10 +421,6 @@ func (conn *Conn) WithTransaction(f func() os.Error) (err os.Error) {
 			conn.Execute("ROLLBACK;")
 		}
 	}()
-
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.WithTransaction"))
-	}
 
 	_, err = conn.Execute("BEGIN;")
 	if err != nil {

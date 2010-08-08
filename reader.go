@@ -125,15 +125,15 @@ func (r *Reader) readRow() {
 // ReadNext reads the next row, if there is one.
 // If a new row has been read it returns true, otherwise false.
 func (r *Reader) ReadNext() (hasData bool, err os.Error) {
+	if r.conn.LogLevel >= LogDebug {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.ReadNext"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = r.conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if r.conn.LogLevel >= LogDebug {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.ReadNext"))
-	}
 
 	hasData = r.row >= -1
 
@@ -153,15 +153,15 @@ func (r *Reader) ReadNext() (hasData bool, err os.Error) {
 // Close closes the reader, so another query or command can be sent to
 // the server over the same connection.
 func (r *Reader) Close() (err os.Error) {
+	if r.conn.LogLevel >= LogDebug {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.Close"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = r.conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if r.conn.LogLevel >= LogDebug {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Close"))
-	}
 
 	if r.stmt != nil {
 		defer r.conn.state.closePortal(r.stmt)
@@ -186,15 +186,15 @@ func (r *Reader) Close() (err os.Error) {
 
 // IsNull returns if the value of the field with the specified ordinal is null.
 func (r *Reader) IsNull(ord int) (isNull bool, err os.Error) {
+	if r.conn.LogLevel >= LogVerbose {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.IsNull"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = r.conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.IsNull"))
-	}
 
 	// Since all field value retrieval methods call this method,
 	// we only check for a valid current row here.
@@ -223,15 +223,15 @@ func (r *Reader) Ordinal(name string) int {
 
 // Bool returns the value of the field with the specified ordinal as bool.
 func (r *Reader) Bool(ord int) (value, isNull bool, err os.Error) {
+	if r.conn.LogLevel >= LogVerbose {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.Bool"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = r.conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Bool"))
-	}
 
 	isNull, err = r.IsNull(ord)
 	if isNull || err != nil {
@@ -253,15 +253,15 @@ func (r *Reader) Bool(ord int) (value, isNull bool, err os.Error) {
 
 // Float32 returns the value of the field with the specified ordinal as float32.
 func (r *Reader) Float32(ord int) (value float32, isNull bool, err os.Error) {
+	if r.conn.LogLevel >= LogVerbose {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.Float32"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = r.conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Float32"))
-	}
 
 	isNull, err = r.IsNull(ord)
 	if isNull || err != nil {
@@ -286,15 +286,15 @@ func (r *Reader) Float32(ord int) (value float32, isNull bool, err os.Error) {
 
 // Float64 returns the value of the field with the specified ordinal as float64.
 func (r *Reader) Float64(ord int) (value float64, isNull bool, err os.Error) {
+	if r.conn.LogLevel >= LogVerbose {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.Float64"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = r.conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Float64"))
-	}
 
 	isNull, err = r.IsNull(ord)
 	if isNull || err != nil {
@@ -319,15 +319,15 @@ func (r *Reader) Float64(ord int) (value float64, isNull bool, err os.Error) {
 
 // Float returns the value of the field with the specified ordinal as float.
 func (r *Reader) Float(ord int) (value float, isNull bool, err os.Error) {
+	if r.conn.LogLevel >= LogVerbose {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.Float"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = r.conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Float"))
-	}
 
 	val, isNull, err := r.Float32(ord)
 	value = float(val)
@@ -336,15 +336,15 @@ func (r *Reader) Float(ord int) (value float, isNull bool, err os.Error) {
 
 // Int16 returns the value of the field with the specified ordinal as int16.
 func (r *Reader) Int16(ord int) (value int16, isNull bool, err os.Error) {
+	if r.conn.LogLevel >= LogVerbose {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.Int16"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = r.conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Int16"))
-	}
 
 	isNull, err = r.IsNull(ord)
 	if isNull || err != nil {
@@ -370,15 +370,15 @@ func (r *Reader) Int16(ord int) (value int16, isNull bool, err os.Error) {
 
 // Int32 returns the value of the field with the specified ordinal as int32.
 func (r *Reader) Int32(ord int) (value int32, isNull bool, err os.Error) {
+	if r.conn.LogLevel >= LogVerbose {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.Int32"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = r.conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Int32"))
-	}
 
 	isNull, err = r.IsNull(ord)
 	if isNull || err != nil {
@@ -404,15 +404,15 @@ func (r *Reader) Int32(ord int) (value int32, isNull bool, err os.Error) {
 
 // Int64 returns the value of the field with the specified ordinal as int64.
 func (r *Reader) Int64(ord int) (value int64, isNull bool, err os.Error) {
+	if r.conn.LogLevel >= LogVerbose {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.Int64"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = r.conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Int64"))
-	}
 
 	isNull, err = r.IsNull(ord)
 	if isNull || err != nil {
@@ -438,15 +438,15 @@ func (r *Reader) Int64(ord int) (value int64, isNull bool, err os.Error) {
 
 // Int returns the value of the field with the specified ordinal as int.
 func (r *Reader) Int(ord int) (value int, isNull bool, err os.Error) {
+	if r.conn.LogLevel >= LogVerbose {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.Int"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = r.conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Int"))
-	}
 
 	val, isNull, err := r.Int32(ord)
 	value = int(val)
@@ -455,15 +455,15 @@ func (r *Reader) Int(ord int) (value int, isNull bool, err os.Error) {
 
 // String returns the value of the field with the specified ordinal as string.
 func (r *Reader) String(ord int) (value string, isNull bool, err os.Error) {
+	if r.conn.LogLevel >= LogVerbose {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.String"))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = r.conn.logAndConvertPanic(x)
 		}
 	}()
-
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.String"))
-	}
 
 	isNull, err = r.IsNull(ord)
 	if isNull || err != nil {
