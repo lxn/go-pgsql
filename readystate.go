@@ -214,7 +214,7 @@ func (state readyState) query(conn *Conn, reader *Reader, command string) {
 
 	conn.flush()
 
-	conn.state = processingQueryState{}
-
 	state.processBackendMessages(conn, reader)
+	
+	conn.state = processingQueryState{}
 }
