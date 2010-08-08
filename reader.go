@@ -27,13 +27,15 @@ type field struct {
 // retrieve field values of the current row.
 // Access is by 0-based field ordinal position.
 type Reader struct {
-	conn         *Conn
-	stmt         *Statement
-	rowsAffected int64
-	row          int64
-	name2ord     map[string]int
-	fields       []field
-	values       [][]byte
+	conn                  *Conn
+	stmt                  *Statement
+	hasCurrentRow         bool
+	currentResultComplete bool
+	allResultsComplete    bool
+	rowsAffected          int64
+	name2ord              map[string]int
+	fields                []field
+	values                [][]byte
 }
 
 func newReader(conn *Conn) *Reader {
@@ -41,12 +43,12 @@ func newReader(conn *Conn) *Reader {
 		defer conn.logExit(conn.logEnter("newReader"))
 	}
 
-	return &Reader{conn: conn, row: -2}
+	return &Reader{conn: conn}
 }
 
-func (r *Reader) initialize() {
+func (r *Reader) initializeResult() {
 	if r.conn.LogLevel >= LogDebug {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.initialize"))
+		defer r.conn.logExit(r.conn.logEnter("*Reader.initializeResult"))
 	}
 
 	// Just eat message length.
@@ -92,7 +94,8 @@ func (r *Reader) initialize() {
 		r.name2ord[field.name] = ord
 	}
 
-	r.row = -1
+	r.currentResultComplete = false
+	r.hasCurrentRow = false
 }
 
 func (r *Reader) readRow() {
@@ -120,11 +123,76 @@ func (r *Reader) readRow() {
 
 		r.values[ord] = val
 	}
+
+	r.hasCurrentRow = true
+}
+
+func (r *Reader) eatCurrentResultRows() (err os.Error) {
+	var hasRow bool
+
+	for {
+		hasRow, err = r.ReadNext()
+		if err != nil {
+			// FIXME: How should we handle this?
+			return
+		}
+		if !hasRow {
+			return
+		}
+	}
+
+	return
+}
+
+func (r *Reader) eatAllResultRows() (err os.Error) {
+	var hasResult bool
+
+	for {
+		hasResult, err = r.NextResult()
+		if err != nil {
+			// FIXME: How should we handle this?
+			return
+		}
+		if !hasResult {
+			return
+		}
+	}
+
+	return
+}
+
+// NextResult moves the reader to the next result, if there is one.
+// In this case true is returned, otherwise false.
+// Statements support a single result only, use *Conn.Query if you need
+// this functionality.
+func (r *Reader) NextResult() (hasResult bool, err os.Error) {
+	if r.conn.LogLevel >= LogDebug {
+		defer r.conn.logExit(r.conn.logEnter("*Reader.NextResult"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = r.conn.logAndConvertPanic(x)
+		}
+	}()
+
+	err = r.eatCurrentResultRows()
+	if err != nil {
+		panic(err)
+	}
+
+	if !r.allResultsComplete {
+		r.conn.state.processBackendMessages(r.conn, r)
+	}
+
+	hasResult = !r.allResultsComplete
+
+	return
 }
 
 // ReadNext reads the next row, if there is one.
-// If a new row has been read it returns true, otherwise false.
-func (r *Reader) ReadNext() (hasData bool, err os.Error) {
+// In this case true is returned, otherwise false.
+func (r *Reader) ReadNext() (hasRow bool, err os.Error) {
 	if r.conn.LogLevel >= LogDebug {
 		defer r.conn.logExit(r.conn.logEnter("*Reader.ReadNext"))
 	}
@@ -135,17 +203,13 @@ func (r *Reader) ReadNext() (hasData bool, err os.Error) {
 		}
 	}()
 
-	hasData = r.row >= -1
-
-	if !hasData {
+	if r.currentResultComplete {
 		return
 	}
 
 	r.conn.state.processBackendMessages(r.conn, r)
 
-	r.row++
-
-	hasData = r.row >= -1
+	hasRow = !r.currentResultComplete
 
 	return
 }
@@ -169,17 +233,12 @@ func (r *Reader) Close() (err os.Error) {
 
 	// TODO: Instead of eating all records, try to cancel the query processing.
 	// (The required message has to be sent through another connection though.)
-	for {
-		hasData, err := r.ReadNext()
-		if err != nil {
-			// FIXME: How should we handle this?
-			return
-		}
-		if !hasData {
-			r.conn.state = readyState{}
-			return
-		}
+	err = r.eatAllResultRows()
+	if err != nil {
+		panic(err)
 	}
+
+	r.conn.state = readyState{}
 
 	return
 }
@@ -198,7 +257,7 @@ func (r *Reader) IsNull(ord int) (isNull bool, err os.Error) {
 
 	// Since all field value retrieval methods call this method,
 	// we only check for a valid current row here.
-	if r.row < 0 {
+	if !r.hasCurrentRow {
 		panic("invalid row")
 	}
 

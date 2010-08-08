@@ -322,7 +322,7 @@ func (conn *Conn) Open() (err os.Error) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.Open"))
 	}
-	
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)

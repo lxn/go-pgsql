@@ -2,7 +2,6 @@ This library is currently missing support for quite some features, including:
 
 -authentication types other than MD5
 -SSL encrypted sessions
--multiple SQL commands per query
 -some data types like date/time, bytea, ...
 -canceling commands/queries
 -bulk copy

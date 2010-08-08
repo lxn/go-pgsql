@@ -235,7 +235,7 @@ func (abstractState) processCommandComplete(conn *Conn, reader *Reader) {
 		}
 
 		reader.rowsAffected = rowsAffected
-		reader.row = -3
+		reader.currentResultComplete = true
 	}
 }
 
@@ -266,7 +266,7 @@ func (state abstractState) processErrorOrNoticeResponse(conn *Conn, isError bool
 			if isError {
 				// Before panicking, we have to wait for a ReadyForQuery message.
 				state.processBackendMessages(conn, nil)
-				
+
 				// We panic with our error as parameter, so the right thing (TM) will happen.
 				panic(err)
 			} else {
@@ -343,7 +343,7 @@ func (abstractState) processParseComplete(conn *Conn) {
 	conn.readInt32()
 }
 
-func (abstractState) processReadyForQuery(conn *Conn) {
+func (abstractState) processReadyForQuery(conn *Conn, reader *Reader) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("abstractState.processReadyForQuery"))
 	}
@@ -368,6 +368,10 @@ func (abstractState) processReadyForQuery(conn *Conn) {
 		default:
 			panic("unknown transaction status")
 	}*/
+
+	if reader != nil {
+		reader.allResultsComplete = true
+	}
 
 	conn.state = readyState{}
 }
@@ -400,6 +404,7 @@ func (state abstractState) processBackendMessages(conn *Conn, reader *Reader) {
 
 		case _CommandComplete:
 			state.processCommandComplete(conn, reader)
+			return
 
 		case _DataRow:
 			reader.readRow()
@@ -422,11 +427,11 @@ func (state abstractState) processBackendMessages(conn *Conn, reader *Reader) {
 			return
 
 		case _ReadyForQuery:
-			state.processReadyForQuery(conn)
+			state.processReadyForQuery(conn, reader)
 			return
 
 		case _RowDescription:
-			reader.initialize()
+			reader.initializeResult()
 			return
 		}
 	}
