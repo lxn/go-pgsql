@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// The pgsql package partially implements a PostgreSQL frontend library.
+// The pgsql package implements a PostgreSQL frontend library.
 // It is compatible with servers of version 7.4 and later.
 package pgsql
 
@@ -336,10 +336,10 @@ func (conn *Conn) Open() (err os.Error) {
 }
 
 // Query sends a SQL query to the server and returns a
-// Reader for row-by-row retrieval of the results.
-// The returned Reader must be closed before sending another
+// ResultSet for row-by-row retrieval of the results.
+// The returned ResultSet must be closed before sending another
 // query or command to the server over the same connection.
-func (conn *Conn) Query(command string) (reader *Reader, err os.Error) {
+func (conn *Conn) Query(command string) (res *ResultSet, err os.Error) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.Query"))
 	}
@@ -350,11 +350,11 @@ func (conn *Conn) Query(command string) (reader *Reader, err os.Error) {
 		}
 	}()
 
-	r := newReader(conn)
+	r := newResultSet(conn)
 
 	conn.state.query(conn, r, command)
 
-	reader = r
+	res = r
 
 	return
 }
@@ -373,14 +373,14 @@ func (conn *Conn) Execute(command string) (rowsAffected int64, err os.Error) {
 		}
 	}()
 
-	reader, err := conn.Query(command)
+	res, err := conn.Query(command)
 	if err != nil {
 		return
 	}
 
-	err = reader.Close()
+	err = res.Close()
 
-	rowsAffected = reader.rowsAffected
+	rowsAffected = res.rowsAffected
 	return
 }
 

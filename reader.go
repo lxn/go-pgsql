@@ -23,10 +23,10 @@ type field struct {
 	format fieldFormat
 }
 
-// Reader reads the results of a query, row by row, and provides methods to
+// ResultSet reads the results of a query, row by row, and provides methods to
 // retrieve field values of the current row.
 // Access is by 0-based field ordinal position.
-type Reader struct {
+type ResultSet struct {
 	conn                  *Conn
 	stmt                  *Statement
 	hasCurrentRow         bool
@@ -38,79 +38,79 @@ type Reader struct {
 	values                [][]byte
 }
 
-func newReader(conn *Conn) *Reader {
+func newResultSet(conn *Conn) *ResultSet {
 	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("newReader"))
+		defer conn.logExit(conn.logEnter("newResultSet"))
 	}
 
-	return &Reader{conn: conn}
+	return &ResultSet{conn: conn}
 }
 
-func (r *Reader) initializeResult() {
-	if r.conn.LogLevel >= LogDebug {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.initializeResult"))
+func (res *ResultSet) initializeResult() {
+	if res.conn.LogLevel >= LogDebug {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.initializeResult"))
 	}
 
 	// Just eat message length.
-	r.conn.readInt32()
+	res.conn.readInt32()
 
-	fieldCount := r.conn.readInt16()
+	fieldCount := res.conn.readInt16()
 
-	r.fields = make([]field, fieldCount)
-	r.values = make([][]byte, fieldCount)
+	res.fields = make([]field, fieldCount)
+	res.values = make([][]byte, fieldCount)
 
 	var ord int16
 	for ord = 0; ord < fieldCount; ord++ {
-		r.fields[ord].name = r.conn.readString()
+		res.fields[ord].name = res.conn.readString()
 
 		// Just eat table OID.
-		r.conn.readInt32()
+		res.conn.readInt32()
 
 		// Just eat field OID.
-		r.conn.readInt16()
+		res.conn.readInt16()
 
 		// Just eat field data type OID.
-		r.conn.readInt32()
+		res.conn.readInt32()
 
 		// Just eat field size.
-		r.conn.readInt16()
+		res.conn.readInt16()
 
 		// Just eat field type modifier.
-		r.conn.readInt32()
+		res.conn.readInt32()
 
-		format := fieldFormat(r.conn.readInt16())
+		format := fieldFormat(res.conn.readInt16())
 		switch format {
 		case textFormat:
 		case binaryFormat:
 		default:
 			panic("unsupported field format")
 		}
-		r.fields[ord].format = format
+		res.fields[ord].format = format
 	}
 
-	r.name2ord = make(map[string]int)
+	res.name2ord = make(map[string]int)
 
-	for ord, field := range r.fields {
-		r.name2ord[field.name] = ord
+	for ord, field := range res.fields {
+		res.name2ord[field.name] = ord
 	}
 
-	r.currentResultComplete = false
-	r.hasCurrentRow = false
+	res.currentResultComplete = false
+	res.hasCurrentRow = false
 }
 
-func (r *Reader) readRow() {
-	if r.conn.LogLevel >= LogDebug {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.readRow"))
+func (res *ResultSet) readRow() {
+	if res.conn.LogLevel >= LogDebug {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.readRow"))
 	}
 
 	// Just eat message length.
-	r.conn.readInt32()
+	res.conn.readInt32()
 
-	fieldCount := r.conn.readInt16()
+	fieldCount := res.conn.readInt16()
 
 	var ord int16
 	for ord = 0; ord < fieldCount; ord++ {
-		valLen := r.conn.readInt32()
+		valLen := res.conn.readInt32()
 
 		var val []byte
 
@@ -118,20 +118,20 @@ func (r *Reader) readRow() {
 			val = nil
 		} else {
 			val = make([]byte, valLen)
-			r.conn.read(val)
+			res.conn.read(val)
 		}
 
-		r.values[ord] = val
+		res.values[ord] = val
 	}
 
-	r.hasCurrentRow = true
+	res.hasCurrentRow = true
 }
 
-func (r *Reader) eatCurrentResultRows() (err os.Error) {
+func (res *ResultSet) eatCurrentResultRows() (err os.Error) {
 	var hasRow bool
 
 	for {
-		hasRow, err = r.ReadNext()
+		hasRow, err = res.FetchNext()
 		if err != nil {
 			// FIXME: How should we handle this?
 			return
@@ -144,11 +144,11 @@ func (r *Reader) eatCurrentResultRows() (err os.Error) {
 	return
 }
 
-func (r *Reader) eatAllResultRows() (err os.Error) {
+func (res *ResultSet) eatAllResultRows() (err os.Error) {
 	var hasResult bool
 
 	for {
-		hasResult, err = r.NextResult()
+		hasResult, err = res.NextResult()
 		if err != nil {
 			// FIXME: How should we handle this?
 			return
@@ -161,118 +161,118 @@ func (r *Reader) eatAllResultRows() (err os.Error) {
 	return
 }
 
-// NextResult moves the reader to the next result, if there is one.
+// NextResult moves the ResultSet to the next result, if there is one.
 // In this case true is returned, otherwise false.
 // Statements support a single result only, use *Conn.Query if you need
 // this functionality.
-func (r *Reader) NextResult() (hasResult bool, err os.Error) {
-	if r.conn.LogLevel >= LogDebug {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.NextResult"))
+func (res *ResultSet) NextResult() (hasResult bool, err os.Error) {
+	if res.conn.LogLevel >= LogDebug {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.NextResult"))
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
+			err = res.conn.logAndConvertPanic(x)
 		}
 	}()
 
-	err = r.eatCurrentResultRows()
+	err = res.eatCurrentResultRows()
 	if err != nil {
 		panic(err)
 	}
 
-	if !r.allResultsComplete {
-		r.conn.state.processBackendMessages(r.conn, r)
+	if !res.allResultsComplete {
+		res.conn.state.processBackendMessages(res.conn, res)
 	}
 
-	hasResult = !r.allResultsComplete
+	hasResult = !res.allResultsComplete
 
 	return
 }
 
-// ReadNext reads the next row, if there is one.
+// FetchNext reads the next row, if there is one.
 // In this case true is returned, otherwise false.
-func (r *Reader) ReadNext() (hasRow bool, err os.Error) {
-	if r.conn.LogLevel >= LogDebug {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.ReadNext"))
+func (res *ResultSet) FetchNext() (hasRow bool, err os.Error) {
+	if res.conn.LogLevel >= LogDebug {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.FetchNext"))
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
+			err = res.conn.logAndConvertPanic(x)
 		}
 	}()
 
-	if r.currentResultComplete {
+	if res.currentResultComplete {
 		return
 	}
 
-	r.conn.state.processBackendMessages(r.conn, r)
+	res.conn.state.processBackendMessages(res.conn, res)
 
-	hasRow = !r.currentResultComplete
+	hasRow = !res.currentResultComplete
 
 	return
 }
 
-// Close closes the reader, so another query or command can be sent to
+// Close closes the ResultSet, so another query or command can be sent to
 // the server over the same connection.
-func (r *Reader) Close() (err os.Error) {
-	if r.conn.LogLevel >= LogDebug {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Close"))
+func (res *ResultSet) Close() (err os.Error) {
+	if res.conn.LogLevel >= LogDebug {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Close"))
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
+			err = res.conn.logAndConvertPanic(x)
 		}
 	}()
 
-	if r.stmt != nil {
-		defer r.conn.state.closePortal(r.stmt)
+	if res.stmt != nil {
+		defer res.conn.state.closePortal(res.stmt)
 	}
 
 	// TODO: Instead of eating all records, try to cancel the query processing.
 	// (The required message has to be sent through another connection though.)
-	err = r.eatAllResultRows()
+	err = res.eatAllResultRows()
 	if err != nil {
 		panic(err)
 	}
 
-	r.conn.state = readyState{}
+	res.conn.state = readyState{}
 
 	return
 }
 
 // IsNull returns if the value of the field with the specified ordinal is null.
-func (r *Reader) IsNull(ord int) (isNull bool, err os.Error) {
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.IsNull"))
+func (res *ResultSet) IsNull(ord int) (isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.IsNull"))
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
+			err = res.conn.logAndConvertPanic(x)
 		}
 	}()
 
 	// Since all field value retrieval methods call this method,
 	// we only check for a valid current row here.
-	if !r.hasCurrentRow {
+	if !res.hasCurrentRow {
 		panic("invalid row")
 	}
 
-	isNull = r.values[ord] == nil
+	isNull = res.values[ord] == nil
 	return
 }
 
 // Ordinal returns the 0-based ordinal position of the field with the
-// specified name, or -1 if the reader has no field with such a name.
-func (r *Reader) Ordinal(name string) int {
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Ordinal"))
+// specified name, or -1 if the ResultSet has no field with such a name.
+func (res *ResultSet) Ordinal(name string) int {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Ordinal"))
 	}
 
-	ord, ok := r.name2ord[name]
+	ord, ok := res.name2ord[name]
 	if !ok {
 		return -1
 	}
@@ -281,25 +281,25 @@ func (r *Reader) Ordinal(name string) int {
 }
 
 // Bool returns the value of the field with the specified ordinal as bool.
-func (r *Reader) Bool(ord int) (value, isNull bool, err os.Error) {
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Bool"))
+func (res *ResultSet) Bool(ord int) (value, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Bool"))
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
+			err = res.conn.logAndConvertPanic(x)
 		}
 	}()
 
-	isNull, err = r.IsNull(ord)
+	isNull, err = res.IsNull(ord)
 	if isNull || err != nil {
 		return
 	}
 
-	val := r.values[ord]
+	val := res.values[ord]
 
-	switch r.fields[ord].format {
+	switch res.fields[ord].format {
 	case textFormat:
 		value = val[0] == 't'
 
@@ -311,25 +311,25 @@ func (r *Reader) Bool(ord int) (value, isNull bool, err os.Error) {
 }
 
 // Float32 returns the value of the field with the specified ordinal as float32.
-func (r *Reader) Float32(ord int) (value float32, isNull bool, err os.Error) {
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Float32"))
+func (res *ResultSet) Float32(ord int) (value float32, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Float32"))
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
+			err = res.conn.logAndConvertPanic(x)
 		}
 	}()
 
-	isNull, err = r.IsNull(ord)
+	isNull, err = res.IsNull(ord)
 	if isNull || err != nil {
 		return
 	}
 
-	val := r.values[ord]
+	val := res.values[ord]
 
-	switch r.fields[ord].format {
+	switch res.fields[ord].format {
 	case textFormat:
 		value, err = strconv.Atof32(string(val))
 		if err != nil {
@@ -344,25 +344,25 @@ func (r *Reader) Float32(ord int) (value float32, isNull bool, err os.Error) {
 }
 
 // Float64 returns the value of the field with the specified ordinal as float64.
-func (r *Reader) Float64(ord int) (value float64, isNull bool, err os.Error) {
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Float64"))
+func (res *ResultSet) Float64(ord int) (value float64, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Float64"))
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
+			err = res.conn.logAndConvertPanic(x)
 		}
 	}()
 
-	isNull, err = r.IsNull(ord)
+	isNull, err = res.IsNull(ord)
 	if isNull || err != nil {
 		return
 	}
 
-	val := r.values[ord]
+	val := res.values[ord]
 
-	switch r.fields[ord].format {
+	switch res.fields[ord].format {
 	case textFormat:
 		value, err = strconv.Atof64(string(val))
 		if err != nil {
@@ -377,42 +377,42 @@ func (r *Reader) Float64(ord int) (value float64, isNull bool, err os.Error) {
 }
 
 // Float returns the value of the field with the specified ordinal as float.
-func (r *Reader) Float(ord int) (value float, isNull bool, err os.Error) {
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Float"))
+func (res *ResultSet) Float(ord int) (value float, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Float"))
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
+			err = res.conn.logAndConvertPanic(x)
 		}
 	}()
 
-	val, isNull, err := r.Float32(ord)
+	val, isNull, err := res.Float32(ord)
 	value = float(val)
 	return
 }
 
 // Int16 returns the value of the field with the specified ordinal as int16.
-func (r *Reader) Int16(ord int) (value int16, isNull bool, err os.Error) {
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Int16"))
+func (res *ResultSet) Int16(ord int) (value int16, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Int16"))
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
+			err = res.conn.logAndConvertPanic(x)
 		}
 	}()
 
-	isNull, err = r.IsNull(ord)
+	isNull, err = res.IsNull(ord)
 	if isNull || err != nil {
 		return
 	}
 
-	val := r.values[ord]
+	val := res.values[ord]
 
-	switch r.fields[ord].format {
+	switch res.fields[ord].format {
 	case textFormat:
 		x, err := strconv.Atoi(string(val))
 		if err != nil {
@@ -428,25 +428,25 @@ func (r *Reader) Int16(ord int) (value int16, isNull bool, err os.Error) {
 }
 
 // Int32 returns the value of the field with the specified ordinal as int32.
-func (r *Reader) Int32(ord int) (value int32, isNull bool, err os.Error) {
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Int32"))
+func (res *ResultSet) Int32(ord int) (value int32, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Int32"))
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
+			err = res.conn.logAndConvertPanic(x)
 		}
 	}()
 
-	isNull, err = r.IsNull(ord)
+	isNull, err = res.IsNull(ord)
 	if isNull || err != nil {
 		return
 	}
 
-	val := r.values[ord]
+	val := res.values[ord]
 
-	switch r.fields[ord].format {
+	switch res.fields[ord].format {
 	case textFormat:
 		x, err := strconv.Atoi(string(val))
 		if err != nil {
@@ -462,25 +462,25 @@ func (r *Reader) Int32(ord int) (value int32, isNull bool, err os.Error) {
 }
 
 // Int64 returns the value of the field with the specified ordinal as int64.
-func (r *Reader) Int64(ord int) (value int64, isNull bool, err os.Error) {
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Int64"))
+func (res *ResultSet) Int64(ord int) (value int64, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Int64"))
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
+			err = res.conn.logAndConvertPanic(x)
 		}
 	}()
 
-	isNull, err = r.IsNull(ord)
+	isNull, err = res.IsNull(ord)
 	if isNull || err != nil {
 		return
 	}
 
-	val := r.values[ord]
+	val := res.values[ord]
 
-	switch r.fields[ord].format {
+	switch res.fields[ord].format {
 	case textFormat:
 		x, err := strconv.Atoi(string(val))
 		if err != nil {
@@ -496,40 +496,40 @@ func (r *Reader) Int64(ord int) (value int64, isNull bool, err os.Error) {
 }
 
 // Int returns the value of the field with the specified ordinal as int.
-func (r *Reader) Int(ord int) (value int, isNull bool, err os.Error) {
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.Int"))
+func (res *ResultSet) Int(ord int) (value int, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Int"))
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
+			err = res.conn.logAndConvertPanic(x)
 		}
 	}()
 
-	val, isNull, err := r.Int32(ord)
+	val, isNull, err := res.Int32(ord)
 	value = int(val)
 	return
 }
 
 // String returns the value of the field with the specified ordinal as string.
-func (r *Reader) String(ord int) (value string, isNull bool, err os.Error) {
-	if r.conn.LogLevel >= LogVerbose {
-		defer r.conn.logExit(r.conn.logEnter("*Reader.String"))
+func (res *ResultSet) String(ord int) (value string, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.String"))
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
-			err = r.conn.logAndConvertPanic(x)
+			err = res.conn.logAndConvertPanic(x)
 		}
 	}()
 
-	isNull, err = r.IsNull(ord)
+	isNull, err = res.IsNull(ord)
 	if isNull || err != nil {
 		return
 	}
 
-	value = string(r.values[ord])
+	value = string(res.values[ord])
 
 	return
 }

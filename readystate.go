@@ -48,7 +48,7 @@ func (readyState) disconnect(conn *Conn) {
 	conn.state = disconnectedState{}
 }
 
-func (state readyState) execute(stmt *Statement, reader *Reader) {
+func (state readyState) execute(stmt *Statement, res *ResultSet) {
 	conn := stmt.conn
 
 	if conn.LogLevel >= LogDebug {
@@ -132,7 +132,7 @@ func (state readyState) execute(stmt *Statement, reader *Reader) {
 	conn.writeInt16(binaryFormat)
 
 	state.flush(conn)
-	state.processBackendMessages(conn, reader)
+	state.processBackendMessages(conn, res)
 
 	// Send Describe packet to server.
 	msgLen = int32(4 + 1 + len(stmt.portalName) + 1)
@@ -143,7 +143,7 @@ func (state readyState) execute(stmt *Statement, reader *Reader) {
 	conn.writeString0(stmt.portalName)
 
 	state.flush(conn)
-	state.processBackendMessages(conn, reader)
+	state.processBackendMessages(conn, res)
 
 	// Send Execute packet to server.
 	msgLen = int32(4 + len(stmt.portalName) + 1 + 4)
@@ -202,7 +202,7 @@ func (state readyState) prepare(stmt *Statement) {
 	state.processBackendMessages(conn, nil)
 }
 
-func (state readyState) query(conn *Conn, reader *Reader, command string) {
+func (state readyState) query(conn *Conn, res *ResultSet, command string) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("readyState.query"))
 	}
@@ -213,7 +213,7 @@ func (state readyState) query(conn *Conn, reader *Reader, command string) {
 
 	conn.flush()
 
-	state.processBackendMessages(conn, reader)
+	state.processBackendMessages(conn, res)
 
 	conn.state = processingQueryState{}
 }

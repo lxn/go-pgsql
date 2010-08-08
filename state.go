@@ -35,7 +35,7 @@ type state interface {
 	disconnect(conn *Conn)
 
 	// execute sends Bind and Execute packets to the server.
-	execute(stmt *Statement, reader *Reader)
+	execute(stmt *Statement, res *ResultSet)
 
 	// flush sends a Flush packet to the server.
 	flush(conn *Conn)
@@ -44,10 +44,10 @@ type state interface {
 	prepare(stmt *Statement)
 
 	// processBackendMessages processes messages from the server.
-	processBackendMessages(conn *Conn, reader *Reader)
+	processBackendMessages(conn *Conn, res *ResultSet)
 
 	// query sends a Query packet to the server.
-	query(conn *Conn, reader *Reader, sql string)
+	query(conn *Conn, res *ResultSet, sql string)
 
 	// startup sends a StartupMessage packet to the server.
 	startup(conn *Conn)
@@ -82,7 +82,7 @@ func (abstractState) disconnect(conn *Conn) {
 	panic(invalidOpForStateMsg)
 }
 
-func (abstractState) execute(stmt *Statement, reader *Reader) {
+func (abstractState) execute(stmt *Statement, res *ResultSet) {
 	panic(invalidOpForStateMsg)
 }
 
@@ -94,7 +94,7 @@ func (abstractState) prepare(stmt *Statement) {
 	panic(invalidOpForStateMsg)
 }
 
-func (abstractState) query(conn *Conn, reader *Reader, sql string) {
+func (abstractState) query(conn *Conn, res *ResultSet, sql string) {
 	panic(invalidOpForStateMsg)
 }
 
@@ -213,7 +213,7 @@ func (abstractState) processCloseComplete(conn *Conn) {
 	conn.readInt32()
 }
 
-func (abstractState) processCommandComplete(conn *Conn, reader *Reader) {
+func (abstractState) processCommandComplete(conn *Conn, res *ResultSet) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("abstractState.processCommandComplete"))
 	}
@@ -224,7 +224,7 @@ func (abstractState) processCommandComplete(conn *Conn, reader *Reader) {
 	// Retrieve the number of affected rows from the command tag.
 	tag := conn.readString()
 
-	if reader != nil {
+	if res != nil {
 		parts := strings.Split(tag, " ", -1)
 
 		rowsAffected, err := strconv.Atoi64(parts[len(parts)-1])
@@ -234,8 +234,8 @@ func (abstractState) processCommandComplete(conn *Conn, reader *Reader) {
 			}
 		}
 
-		reader.rowsAffected = rowsAffected
-		reader.currentResultComplete = true
+		res.rowsAffected = rowsAffected
+		res.currentResultComplete = true
 	}
 }
 
@@ -343,7 +343,7 @@ func (abstractState) processParseComplete(conn *Conn) {
 	conn.readInt32()
 }
 
-func (abstractState) processReadyForQuery(conn *Conn, reader *Reader) {
+func (abstractState) processReadyForQuery(conn *Conn, res *ResultSet) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("abstractState.processReadyForQuery"))
 	}
@@ -369,14 +369,14 @@ func (abstractState) processReadyForQuery(conn *Conn, reader *Reader) {
 			panic("unknown transaction status")
 	}*/
 
-	if reader != nil {
-		reader.allResultsComplete = true
+	if res != nil {
+		res.allResultsComplete = true
 	}
 
 	conn.state = readyState{}
 }
 
-func (state abstractState) processBackendMessages(conn *Conn, reader *Reader) {
+func (state abstractState) processBackendMessages(conn *Conn, res *ResultSet) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("abstractState.processBackendMessages"))
 	}
@@ -403,11 +403,11 @@ func (state abstractState) processBackendMessages(conn *Conn, reader *Reader) {
 			state.processCloseComplete(conn)
 
 		case _CommandComplete:
-			state.processCommandComplete(conn, reader)
+			state.processCommandComplete(conn, res)
 			return
 
 		case _DataRow:
-			reader.readRow()
+			res.readRow()
 			return
 
 		case _EmptyQueryResponse:
@@ -427,11 +427,11 @@ func (state abstractState) processBackendMessages(conn *Conn, reader *Reader) {
 			return
 
 		case _ReadyForQuery:
-			state.processReadyForQuery(conn, reader)
+			state.processReadyForQuery(conn, res)
 			return
 
 		case _RowDescription:
-			reader.initializeResult()
+			res.initializeResult()
 			return
 		}
 	}

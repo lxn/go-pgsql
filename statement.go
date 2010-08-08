@@ -179,10 +179,10 @@ func (stmt *Statement) Command() string {
 }
 
 // Query executes the Statement and returns a
-// Reader for row-by-row retrieval of the results.
-// The returned Reader must be closed before sending another
+// ResultSet for row-by-row retrieval of the results.
+// The returned ResultSet must be closed before sending another
 // query or command to the server over the same connection.
-func (stmt *Statement) Query() (reader *Reader, err os.Error) {
+func (stmt *Statement) Query() (res *ResultSet, err os.Error) {
 	conn := stmt.conn
 
 	if conn.LogLevel >= LogDebug {
@@ -195,11 +195,11 @@ func (stmt *Statement) Query() (reader *Reader, err os.Error) {
 		}
 	}()
 
-	r := newReader(conn)
+	r := newResultSet(conn)
 
 	conn.state.execute(stmt, r)
 
-	reader = r
+	res = r
 
 	return
 }
@@ -220,13 +220,13 @@ func (stmt *Statement) Execute() (rowsAffected int64, err os.Error) {
 		}
 	}()
 
-	reader, err := stmt.Query()
+	res, err := stmt.Query()
 	if err != nil {
 		return
 	}
 
-	err = reader.Close()
+	err = res.Close()
 
-	rowsAffected = reader.rowsAffected
+	rowsAffected = res.rowsAffected
 	return
 }
