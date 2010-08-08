@@ -1,12 +1,42 @@
-This library is currently missing support for quite some features, including:
+About go-pgsql
+==============
 
--authentication types other than MD5
--SSL encrypted sessions
--some data types like date/time, bytea, ...
--canceling commands/queries
--bulk copy
--...
+go-pgsql is a PostgreSQL client library for the Go programming language.
 
-This library is (at least currently) not thread-safe,
-so for every goroutine that must talk to the same database,
-a separate Conn is required.
+It partially implements version 3.0 of the PostgreSQL frontend/backend protocol,
+so it should work with servers of version 7.4 and later.
+
+Installing go-pgsql
+===================
+
+1. Make sure you have a working Go installation, see the installation guide at
+   http://golang.org/doc/install.html
+2. git clone git://github.com/lxn/go-pgsql.git
+3. cd go-pgsql && make install
+
+Alternatively you can use goinstall:
+goinstall github.com/lxn/go-pgsql
+
+Using go-pgsql
+==============
+
+At present there are no examples but you can find some tests in pgsql_test.go,
+which should get you started.
+
+This is a young project so there will be bugs for sure.
+Please open an issue on the bug tracker if you encounter one of them.
+
+Missing Features
+================
+
+go-pgsql is currently missing support for some features, including:
+
+- authentication types other than MD5
+- SSL encrypted sessions
+- some data types like date/time, bytea, ...
+- canceling commands/queries
+- bulk copy
+...
+
+go-pgsql is (at least for now) not thread-safe, so for every goroutine
+that must talk to the same database, a separate Conn is required.
