@@ -42,8 +42,7 @@ func (readyState) disconnect(conn *Conn) {
 
 	err := conn.conn.Close()
 	if err != nil {
-		conn.logError(LogError, err)
-		return
+		panic(err)
 	}
 
 	conn.state = disconnectedState{}
