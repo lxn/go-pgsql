@@ -9,8 +9,8 @@ GOFILES=\
 	messagecodes.go\
 	parameter.go\
 	processingquerystate.go\
-	reader.go\
 	readystate.go\
+	resultset.go\
 	startupstate.go\
 	state.go\
 	statement.go\
