@@ -133,14 +133,6 @@ func Test_ConnOpen_InvalidPassword_ExpectErrNotNil(t *testing.T) {
 	}
 }
 
-func doSimpleQueryReaderTest(t *testing.T, test func(reader *Reader) (have, want interface{}, name string)) {
-	withSimpleQueryReader(t, "SELECT 1 AS _1, 'two' AS _two, true AS _true, null AS _null, 4.5 AS _4_5;", func(reader *Reader) {
-		if have, want, name := test(reader); have != want {
-			t.Errorf("%s failed - have: '%v', but want '%v'", name, have, want)
-		}
-	})
-}
-
 func Test_DoSimpleQueryReaderTests(t *testing.T) {
 	tests := []func(reader *Reader) (have, want interface{}, name string){
 		// Basic reader tests
@@ -187,7 +179,11 @@ func Test_DoSimpleQueryReaderTests(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		doSimpleQueryReaderTest(t, test)
+		withSimpleQueryReader(t, "SELECT 1 AS _1, 'two' AS _two, true AS _true, null AS _null, 4.5 AS _4_5;", func(reader *Reader) {
+			if have, want, name := test(reader); have != want {
+				t.Errorf("%s failed - have: '%v', but want '%v'", name, have, want)
+			}
+		})
 	}
 }
 
@@ -227,24 +223,13 @@ func Test_SimpleQuery_MultipleSelects(t *testing.T) {
 			_, _, err := reader.Int(0)
 			return err, nil, "err Int(0) (first result)"
 		},
-		// NextResult
 		func(reader *Reader) (have, want interface{}, name string) {
 			hasResult, _ := reader.NextResult()
-			return hasResult, true, "hasResult on NextResult (on first result)"
+			return hasResult, true, "hasResult on NextResult (first result)"
 		},
 		func(reader *Reader) (have, want interface{}, name string) {
 			_, err := reader.NextResult()
-			return err, nil, "err on NextResult (on first result)"
-		},
-		func(reader *Reader) (have, want interface{}, name string) {
-			reader.NextResult()
-			hasResult, _ := reader.NextResult()
-			return hasResult, false, "hasResult on NextResult (on second result)"
-		},
-		func(reader *Reader) (have, want interface{}, name string) {
-			reader.NextResult()
-			_, err := reader.NextResult()
-			return err, nil, "err on NextResult (on second result)"
+			return err, nil, "err on NextResult (first result)"
 		},
 		// Second result
 		func(reader *Reader) (have, want interface{}, name string) {
@@ -286,6 +271,16 @@ func Test_SimpleQuery_MultipleSelects(t *testing.T) {
 			reader.ReadNext()
 			_, _, err := reader.String(0)
 			return err, nil, "err String(0) (second result)"
+		},
+		func(reader *Reader) (have, want interface{}, name string) {
+			reader.NextResult()
+			hasResult, _ := reader.NextResult()
+			return hasResult, false, "hasResult on NextResult (second result)"
+		},
+		func(reader *Reader) (have, want interface{}, name string) {
+			reader.NextResult()
+			_, err := reader.NextResult()
+			return err, nil, "err on NextResult (second result)"
 		},
 	}
 
