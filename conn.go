@@ -72,14 +72,15 @@ func (s ConnStatus) String() string {
 
 // Conn represents a connection to a database on a PostgreSQL server.
 type Conn struct {
-	LogLevel         LogLevel
-	conn             net.Conn
-	params           ConnParams
-	state            state
-	backendPID       int32
-	backendSecretKey int32
-	reader           *bufio.Reader
-	writer           *bufio.Writer
+	LogLevel                        LogLevel
+	conn                            net.Conn
+	params                          ConnParams
+	state                           state
+	backendPID                      int32
+	backendSecretKey                int32
+	onErrorDontRequireReadyForQuery bool
+	reader                          *bufio.Reader
+	writer                          *bufio.Writer
 }
 
 // NewConn returns a new Conn initialized with the specified parameters.

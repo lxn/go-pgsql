@@ -199,6 +199,9 @@ func (state readyState) prepare(stmt *Statement) {
 
 	state.flush(conn)
 
+	conn.onErrorDontRequireReadyForQuery = true
+	defer func() { conn.onErrorDontRequireReadyForQuery = false }()
+
 	state.processBackendMessages(conn, nil)
 }
 

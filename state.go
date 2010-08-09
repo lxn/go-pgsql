@@ -264,8 +264,10 @@ func (state abstractState) processErrorOrNoticeResponse(conn *Conn, isError bool
 
 		if fieldType == 0 {
 			if isError {
-				// Before panicking, we have to wait for a ReadyForQuery message.
-				state.processBackendMessages(conn, nil)
+				if !conn.onErrorDontRequireReadyForQuery {
+					// Before panicking, we have to wait for a ReadyForQuery message.
+					state.processBackendMessages(conn, nil)
+				}
 
 				// We panic with our error as parameter, so the right thing (TM) will happen.
 				panic(err)
