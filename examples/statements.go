@@ -35,7 +35,7 @@ func queryAndPrintResults(stmt *pgsql.Statement) {
 		if isNull {
 			stropt = "(null)"
 		}
-		fmt.Printf("stropt: '%s'\n", stropt)
+		fmt.Println("stropt:", stropt)
 	}
 }
 
@@ -57,9 +57,8 @@ func main() {
 
 	command := "SELECT * FROM table1 WHERE id = @id;"
 	idParam := pgsql.NewParameter("@id", pgsql.Integer)
-	parameters := []*pgsql.Parameter{idParam}
 
-	stmt, err := conn.Prepare(command, parameters)
+	stmt, err := conn.Prepare(command, idParam)
 	if err != nil {
 		os.Exit(1)
 	}

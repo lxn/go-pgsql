@@ -176,11 +176,11 @@ func (conn *Conn) Execute(command string) (rowsAffected int64, err os.Error) {
 	return
 }
 
-// Prepare returns a new prepared Statement, optimized to be executed multiple
+// PrepareSlice returns a new prepared Statement, optimized to be executed multiple
 // times with different parameter values.
-func (conn *Conn) Prepare(command string, params []*Parameter) (stmt *Statement, err os.Error) {
+func (conn *Conn) PrepareSlice(command string, params []*Parameter) (stmt *Statement, err os.Error) {
 	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.Prepare"))
+		defer conn.logExit(conn.logEnter("*Conn.PrepareSlice"))
 	}
 
 	defer func() {
@@ -195,6 +195,16 @@ func (conn *Conn) Prepare(command string, params []*Parameter) (stmt *Statement,
 
 	stmt = statement
 	return
+}
+
+// Prepare returns a new prepared Statement, optimized to be executed multiple
+// times with different parameter values.
+func (conn *Conn) Prepare(command string, params ...*Parameter) (stmt *Statement, err os.Error) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.Prepare"))
+	}
+
+	return conn.PrepareSlice(command, params)
 }
 
 // Query sends a SQL query to the server and returns a
