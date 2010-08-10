@@ -5,7 +5,6 @@
 package pgsql
 
 import (
-	"os"
 	"testing"
 )
 
@@ -18,22 +17,14 @@ func validParams() *ConnParams {
 	}
 }
 
-func openConn() (conn *Conn, err os.Error) {
-	conn, err = NewConn(validParams())
-	if conn == nil || err != nil {
-		return
-	}
-	return conn, conn.Open()
-}
-
 func withConn(t *testing.T, f func(conn *Conn)) {
-	conn, err := openConn()
+	conn, err := Connect(validParams())
 	if err != nil {
-		t.Error("withConn: openConn:", err)
+		t.Error("withConn: Connect:", err)
 		return
 	}
 	if conn == nil {
-		t.Error("withConn: openConn: conn == nil")
+		t.Error("withConn: Connect: conn == nil")
 		return
 	}
 	defer conn.Close()
@@ -92,22 +83,22 @@ func withStatementResultSet(t *testing.T, command string, params []*Parameter, f
 	})
 }
 
-func Test_NewConn_NilParams_ExpectErrNotNil(t *testing.T) {
-	_, err := NewConn(nil)
+func Test_Connect_NilParams_ExpectErrNotNil(t *testing.T) {
+	_, err := Connect(nil)
 	if err == nil {
 		t.Fail()
 	}
 }
 
-func Test_NewConn_NilParams_ExpectConnNil(t *testing.T) {
-	conn, _ := NewConn(nil)
+func Test_Connect_NilParams_ExpectConnNil(t *testing.T) {
+	conn, _ := Connect(nil)
 	if conn != nil {
 		t.Fail()
 	}
 }
 
-func Test_ConnOpen_ValidParams_ExpectErrNil(t *testing.T) {
-	conn, err := openConn()
+func Test_Connect_ValidParams_ExpectErrNil(t *testing.T) {
+	conn, err := Connect(validParams())
 	if err != nil {
 		t.Fail()
 	}
@@ -116,20 +107,27 @@ func Test_ConnOpen_ValidParams_ExpectErrNil(t *testing.T) {
 	}
 }
 
-func Test_ConnOpen_InvalidPassword_ExpectErrNotNil(t *testing.T) {
+func Test_Connect_InvalidPassword_ExpectConnNil(t *testing.T) {
 	params := validParams()
 	params.Password = "wrongpassword"
 
-	conn, _ := NewConn(params)
-	if conn == nil {
-		t.Error("conn == nil")
-		return
-	}
-
-	err := conn.Open()
-	if err == nil {
-		conn.Close()
+	conn, _ := Connect(params)
+	if conn != nil {
 		t.Fail()
+		conn.Close()
+	}
+}
+
+func Test_Connect_InvalidPassword_ExpectErrNotNil(t *testing.T) {
+	params := validParams()
+	params.Password = "wrongpassword"
+
+	conn, err := Connect(params)
+	if err == nil {
+		t.Fail()
+	}
+	if conn != nil {
+		conn.Close()
 	}
 }
 

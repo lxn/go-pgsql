@@ -30,12 +30,15 @@ const (
 	LogVerbose
 )
 
+var DefaultLogLevel LogLevel
+
 type ConnParams struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	Database string
+	Host           string
+	Port           int
+	User           string
+	Password       string
+	Database       string
+	TimeoutSeconds int
 }
 
 // ConnStatus represents the status of a connection.
@@ -43,8 +46,6 @@ type ConnStatus int
 
 const (
 	StatusDisconnected ConnStatus = iota
-	StatusConnected
-	StatusAuthenticating
 	StatusReady
 	StatusProcessingQuery
 )
@@ -53,12 +54,6 @@ func (s ConnStatus) String() string {
 	switch s {
 	case StatusDisconnected:
 		return "Disconnected"
-
-	case StatusConnected:
-		return "Connected"
-
-	case StatusAuthenticating:
-		return "Authenticating"
 
 	case StatusReady:
 		return "Ready"
@@ -70,11 +65,11 @@ func (s ConnStatus) String() string {
 	return "Unknown"
 }
 
-// Conn represents a connection to a database on a PostgreSQL server.
+// Conn represents a PostgreSQL database connection.
 type Conn struct {
 	LogLevel                        LogLevel
-	conn                            net.Conn
-	params                          ConnParams
+	tcpConn                         net.Conn
+	params                          *ConnParams
 	state                           state
 	backendPID                      int32
 	backendSecretKey                int32
@@ -83,25 +78,98 @@ type Conn struct {
 	writer                          *bufio.Writer
 }
 
-// NewConn returns a new Conn initialized with the specified parameters.
-func NewConn(params *ConnParams) (conn *Conn, err os.Error) {
-	if params == nil {
-		err = os.NewError("params cannot be nil")
-		return
+// Connect establishes a database connection.
+func Connect(parameters *ConnParams) (conn *Conn, err os.Error) {
+	newConn := new(Conn)
+
+	newConn.LogLevel = DefaultLogLevel
+	newConn.state = disconnectedState{}
+
+	if newConn.LogLevel >= LogDebug {
+		defer newConn.logExit(newConn.logEnter("Connect"))
 	}
 
-	conn = new(Conn)
-	conn.params = *params
-	conn.state = disconnectedState{}
+	defer func() {
+		if x := recover(); x != nil {
+			err = newConn.logAndConvertPanic(x)
+		}
+	}()
 
-	if conn.params.Host == "" {
-		conn.params.Host = "127.0.0.1"
+	params := new(ConnParams)
+	*params = *parameters
+	newConn.params = params
+
+	if params.Host == "" {
+		params.Host = "127.0.0.1"
 	}
-	if conn.params.Port == 0 {
-		conn.params.Port = 5432
+	if params.Port == 0 {
+		params.Port = 5432
 	}
+
+	tcpConn, err := net.Dial("tcp", "", fmt.Sprintf("%s:%d", params.Host, params.Port))
+	if err != nil {
+		panic(err)
+	}
+
+	err = tcpConn.SetReadTimeout(int64(params.TimeoutSeconds * 1000 * 1000 * 1000))
+	if err != nil {
+		panic(err)
+	}
+
+	newConn.tcpConn = tcpConn
+
+	newConn.reader = bufio.NewReader(tcpConn)
+	newConn.writer = bufio.NewWriter(tcpConn)
+
+	newConn.writeStartup(params)
+
+	newConn.state.processBackendMessages(newConn, nil)
+
+	newConn.state = readyState{}
+	newConn.params = nil
+
+	conn = newConn
 
 	return
+}
+
+func (conn *Conn) writeStartup(params *ConnParams) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.writeStartup"))
+	}
+
+	msglen := int32(4 + 4 +
+		len("user") + 1 + len(params.User) + 1 +
+		len("database") + 1 + len(params.Database) + 1 + 1)
+
+	conn.writeInt32(msglen)
+
+	// For now we only support protocol version 3.0.
+	conn.writeInt32(3 << 16)
+
+	conn.writeString0("user")
+	conn.writeString0(params.User)
+
+	conn.writeString0("database")
+	conn.writeString0(params.Database)
+
+	conn.writeByte(0)
+
+	conn.flush()
+}
+
+func (conn *Conn) writePasswordMessage(password string) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.writePasswordMessage"))
+	}
+
+	msgLen := int32(4 + len(password) + 1)
+
+	conn.writeFrontendMessageCode(_PasswordMessage)
+	conn.writeInt32(msgLen)
+	conn.writeString0(password)
+
+	conn.flush()
 }
 
 func (conn *Conn) log(level LogLevel, v ...interface{}) {
@@ -316,24 +384,6 @@ func (conn *Conn) Close() (err os.Error) {
 // Status returns the current connection status.
 func (conn *Conn) Status() ConnStatus {
 	return conn.state.code()
-}
-
-// Open opens a database connection and waits until it is ready to issue commands.
-func (conn *Conn) Open() (err os.Error) {
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.Open"))
-	}
-
-	defer func() {
-		if x := recover(); x != nil {
-			err = conn.logAndConvertPanic(x)
-		}
-	}()
-
-	conn.state.connect(conn)
-	conn.state.startup(conn)
-
-	return
 }
 
 // Query sends a SQL query to the server and returns a

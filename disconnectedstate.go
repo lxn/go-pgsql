@@ -4,40 +4,11 @@
 
 package pgsql
 
-import (
-	"bufio"
-	"fmt"
-	"net"
-)
-
-// disconnectedState is the initial state before a network connection is established.
+// disconnectedState is the initial state before a connection is established.
 type disconnectedState struct {
 	abstractState
 }
 
 func (disconnectedState) code() ConnStatus {
 	return StatusDisconnected
-}
-
-func (disconnectedState) connect(conn *Conn) {
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("disconnectedState.connect"))
-	}
-
-	c, err := net.Dial("tcp", "", fmt.Sprintf("%s:%d", conn.params.Host, conn.params.Port))
-	if err != nil {
-		panic(err)
-	}
-
-	err = c.SetReadTimeout(15000000000)
-	if err != nil {
-		panic(err)
-	}
-
-	conn.conn = c
-
-	conn.reader = bufio.NewReader(c)
-	conn.writer = bufio.NewWriter(c)
-
-	conn.state = connectedState{}
 }

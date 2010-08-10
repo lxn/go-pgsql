@@ -11,6 +11,8 @@ import (
 )
 
 func main() {
+	pgsql.DefaultLogLevel = pgsql.LogError
+
 	params := &pgsql.ConnParams{
 		Host:     "127.0.0.1",
 		Database: "testdatabase",
@@ -18,14 +20,7 @@ func main() {
 		Password: "testpassword",
 	}
 
-	conn, err := pgsql.NewConn(params)
-	if err != nil {
-		os.Exit(1)
-	}
-
-	conn.LogLevel = pgsql.LogError
-
-	err = conn.Open()
+	conn, err := pgsql.Connect(params)
 	if err != nil {
 		os.Exit(1)
 	}

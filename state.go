@@ -16,9 +16,6 @@ const invalidOpForStateMsg = "invalid operation for this state"
 
 // state is the interface that all states must implement.
 type state interface {
-	// authenticate sends a PasswordMessage packet to the server.
-	authenticate(conn *Conn, password string)
-
 	// closePortal sends a Close packet for the statements current portal to the server.
 	closePortal(stmt *Statement)
 
@@ -27,9 +24,6 @@ type state interface {
 
 	// code returns the ConnStatus that matches the state.
 	code() ConnStatus
-
-	// connect establishes a network connection to the server.
-	connect(conn *Conn)
 
 	// disconnect sends a Terminate packet to the server and closes the network connection.
 	disconnect(conn *Conn)
@@ -48,9 +42,6 @@ type state interface {
 
 	// query sends a Query packet to the server.
 	query(conn *Conn, res *ResultSet, sql string)
-
-	// startup sends a StartupMessage packet to the server.
-	startup(conn *Conn)
 }
 
 
@@ -58,23 +49,11 @@ type state interface {
 // the state interface without implementing all state methods itself.
 type abstractState struct{}
 
-func (abstractState) authenticate(conn *Conn, password string) {
-	panic(invalidOpForStateMsg)
-}
-
 func (abstractState) closePortal(stmt *Statement) {
 	panic(invalidOpForStateMsg)
 }
 
 func (abstractState) closeStatement(stmt *Statement) {
-	panic(invalidOpForStateMsg)
-}
-
-func (abstractState) code() ConnStatus {
-	panic(invalidOpForStateMsg)
-}
-
-func (abstractState) connect(conn *Conn) {
 	panic(invalidOpForStateMsg)
 }
 
@@ -95,10 +74,6 @@ func (abstractState) prepare(stmt *Statement) {
 }
 
 func (abstractState) query(conn *Conn, res *ResultSet, sql string) {
-	panic(invalidOpForStateMsg)
-}
-
-func (abstractState) startup(conn *Conn) {
 	panic(invalidOpForStateMsg)
 }
 
@@ -167,8 +142,7 @@ func (abstractState) processAuthenticationRequest(conn *Conn) {
 
 		password := "md5" + md5HashHex2
 
-		conn.state = startupState{}
-		conn.state.authenticate(conn, password)
+		conn.writePasswordMessage(password)
 
 		//		case _AuthenticationSCMCredential:
 

@@ -38,9 +38,7 @@ func (readyState) disconnect(conn *Conn) {
 
 	conn.flush()
 
-	conn.state = connectedState{}
-
-	err := conn.conn.Close()
+	err := conn.tcpConn.Close()
 	if err != nil {
 		panic(err)
 	}
