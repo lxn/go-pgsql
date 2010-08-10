@@ -51,42 +51,7 @@ func (res *ResultSet) initializeResult() {
 		defer res.conn.logExit(res.conn.logEnter("*ResultSet.initializeResult"))
 	}
 
-	// Just eat message length.
-	res.conn.readInt32()
-
-	fieldCount := res.conn.readInt16()
-
-	res.fields = make([]field, fieldCount)
-	res.values = make([][]byte, fieldCount)
-
-	var ord int16
-	for ord = 0; ord < fieldCount; ord++ {
-		res.fields[ord].name = res.conn.readString()
-
-		// Just eat table OID.
-		res.conn.readInt32()
-
-		// Just eat field OID.
-		res.conn.readInt16()
-
-		// Just eat field data type OID.
-		res.conn.readInt32()
-
-		// Just eat field size.
-		res.conn.readInt16()
-
-		// Just eat field type modifier.
-		res.conn.readInt32()
-
-		format := fieldFormat(res.conn.readInt16())
-		switch format {
-		case textFormat:
-		case binaryFormat:
-		default:
-			panic("unsupported field format")
-		}
-		res.fields[ord].format = format
-	}
+	res.conn.readRowDescription(res)
 
 	res.name2ord = make(map[string]int)
 
@@ -103,26 +68,7 @@ func (res *ResultSet) readRow() {
 		defer res.conn.logExit(res.conn.logEnter("*ResultSet.readRow"))
 	}
 
-	// Just eat message length.
-	res.conn.readInt32()
-
-	fieldCount := res.conn.readInt16()
-
-	var ord int16
-	for ord = 0; ord < fieldCount; ord++ {
-		valLen := res.conn.readInt32()
-
-		var val []byte
-
-		if valLen == -1 {
-			val = nil
-		} else {
-			val = make([]byte, valLen)
-			res.conn.read(val)
-		}
-
-		res.values[ord] = val
-	}
+	res.conn.readDataRow(res)
 
 	res.hasCurrentRow = true
 }
@@ -182,7 +128,7 @@ func (res *ResultSet) NextResult() (hasResult bool, err os.Error) {
 	}
 
 	if !res.allResultsComplete {
-		res.conn.state.processBackendMessages(res.conn, res)
+		res.conn.readBackendMessages(res)
 	}
 
 	hasResult = !res.allResultsComplete
@@ -207,7 +153,7 @@ func (res *ResultSet) FetchNext() (hasRow bool, err os.Error) {
 		return
 	}
 
-	res.conn.state.processBackendMessages(res.conn, res)
+	res.conn.readBackendMessages(res)
 
 	hasRow = !res.currentResultComplete
 
