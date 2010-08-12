@@ -28,7 +28,7 @@ type Statement struct {
 func replaceParameterName(command, old, new string) string {
 	buf := bytes.NewBuffer(nil)
 
-	quoteIndices := quoteRegExp.ExecuteString(command)
+	quoteIndices := quoteRegExp.FindStringIndex(command)
 	prevQuoteEnd := 0
 	for i := 0; i < len(quoteIndices); i += 2 {
 		quoteStart := quoteIndices[i]
