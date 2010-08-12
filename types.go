@@ -95,3 +95,36 @@ const (
 	Text     Type = _TEXTOID
 	Varchar  Type = _VARCHAROID
 )
+
+func (t Type) String() string {
+	switch t {
+	case Boolean:
+		return "Boolean"
+
+	case Char:
+		return "Char"
+
+	case Real:
+		return "Real"
+
+	case Double:
+		return "Double"
+
+	case Smallint:
+		return "Smallint"
+
+	case Integer:
+		return "Integer"
+
+	case Bigint:
+		return "Bigint"
+
+	case Text:
+		return "Text"
+
+	case Varchar:
+		return "Varchar"
+	}
+
+	return "Unknown"
+}

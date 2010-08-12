@@ -5,6 +5,7 @@
 package pgsql
 
 import (
+	"fmt"
 	"os"
 )
 
@@ -34,6 +35,11 @@ func (p *Parameter) Type() Type {
 // Value returns the current value of the Parameter.
 func (p *Parameter) Value() interface{} {
 	return p.value
+}
+
+func (p *Parameter) panicInvalidValue(v interface{}) {
+	panic(fmt.Sprintf("Parameter %s: Invalid value for PostgreSQL type %s: '%v' (Go type: %T)",
+		p.name, p.typ, v, v))
 }
 
 // SetValue sets the current value of the Parameter.
@@ -68,20 +74,20 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 			p.value = val
 
 		default:
-			panic("invalid value for Bigint")
+			p.panicInvalidValue(v)
 		}
 
 	case Boolean:
 		val, ok := v.(bool)
 		if !ok {
-			panic("invalid value for Boolean")
+			p.panicInvalidValue(v)
 		}
 		p.value = val
 
 	case Char, Text, Varchar:
 		val, ok := v.(string)
 		if !ok {
-			panic("invalid value for Char, Text or Varchar")
+			p.panicInvalidValue(v)
 		}
 		p.value = val
 
@@ -97,7 +103,7 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 			p.value = val
 
 		default:
-			panic("invalid value for Double")
+			p.panicInvalidValue(v)
 		}
 
 	case Integer:
@@ -112,7 +118,7 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 			p.value = val
 
 		default:
-			panic("invalid value for Integer")
+			p.panicInvalidValue(v)
 		}
 
 	case Real:
@@ -124,13 +130,13 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 			p.value = val
 
 		default:
-			panic("invalid value for Real")
+			p.panicInvalidValue(v)
 		}
 
 	case Smallint:
 		val, ok := v.(int16)
 		if !ok {
-			panic("invalid value for Smallint")
+			p.panicInvalidValue(v)
 		}
 		p.value = val
 	}

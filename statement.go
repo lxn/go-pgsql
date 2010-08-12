@@ -67,6 +67,9 @@ func newStatement(conn *Conn, command string, params []*Parameter) *Statement {
 	stmt.name2param = make(map[string]*Parameter)
 
 	for _, param := range params {
+		if param == nil {
+			panic("received a nil parameter")
+		}
 		if param.stmt != nil {
 			panic(fmt.Sprintf("parameter '%s' already used in another statement", param.name))
 		}
