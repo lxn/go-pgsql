@@ -545,18 +545,9 @@ func (res *ResultSet) ScanNext(args ...interface{}) (fetched bool, err os.Error)
 		defer res.conn.logExit(res.conn.logEnter("*ResultSet.ScanNext"))
 	}
 
-	defer func() {
-		if x := recover(); x != nil {
-			err = res.conn.logAndConvertPanic(x)
-		}
-	}()
-
-	hasRow, err := res.FetchNext()
-	if err != nil {
+	fetched, err = res.FetchNext()
+	if !fetched || err != nil {
 		return
-	}
-	if !hasRow {
-		panic("failed to fetch row")
 	}
 
 	return true, res.Scan(args)
