@@ -230,3 +230,29 @@ func (stmt *Statement) Execute() (rowsAffected int64, err os.Error) {
 	rowsAffected = res.rowsAffected
 	return
 }
+
+// Scan executes the statement and scans the fields of the first row
+// in the ResultSet, trying to store field values into the specified
+// arguments. The arguments must be of pointer types. If a row has
+// been fetched, fetched will be true, otherwise false.
+func (stmt *Statement) Scan(args ...interface{}) (fetched bool, err os.Error) {
+	conn := stmt.conn
+
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Statement.Scan"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = conn.logAndConvertPanic(x)
+		}
+	}()
+
+    res, err := stmt.Query()
+    if err != nil {
+        return
+    }
+    defer res.Close()
+
+    return res.ScanNext(args)
+}

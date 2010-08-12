@@ -5,6 +5,7 @@
 package pgsql
 
 import (
+    "math"
 	"testing"
 )
 
@@ -354,4 +355,38 @@ func Test_DoStatementResultSetTests(t *testing.T) {
 			}
 		})
 	}
+}
+
+type item struct {
+    id int
+    name string
+    price float
+    onSale bool
+}
+
+func Test_Conn_Scan(t *testing.T) {
+    withConn(t, func(conn *Conn) {
+        var x item
+        command := "SELECT 123, 'abc', 14.99, true;"
+        fetched, err := conn.Scan(command, &x.id, &x.name, &x.price, &x.onSale)
+        if err != nil {
+            t.Error(err)
+            return
+        }
+        if !fetched {
+            t.Error("fetched == false")
+        }
+        if x.id != 123 {
+            t.Errorf("id - have: %d, but want: 123", x.id)
+        }
+        if x.name != "abc" {
+            t.Errorf("name - have: '%s', but want: 'abc'", x.name)
+        }
+        if math.Fabs(float64(x.price) - 14.99) > 0.000001 {
+            t.Errorf("price - have: %f, but want: 14.99", x.price)
+        }
+        if !x.onSale {
+            t.Error("onSale - have: true, but want: false")
+        }
+    })
 }

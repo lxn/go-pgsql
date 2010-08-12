@@ -479,3 +479,85 @@ func (res *ResultSet) String(ord int) (value string, isNull bool, err os.Error) 
 
 	return
 }
+
+// Scan scans the fields of the current row in the ResultSet, trying
+// to store field values into the specified arguments. The arguments
+// must be of pointer types.
+func (res *ResultSet) Scan(args ...interface{}) (err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Scan"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = res.conn.logAndConvertPanic(x)
+		}
+	}()
+
+    if len(args) != len(res.fields) {
+        panic("wrong argument count")
+    }
+
+    for i, arg := range args {
+        switch a := arg.(type) {
+        case *bool:
+            *a, _, err = res.Bool(i)
+
+        case *float:
+            *a, _, err = res.Float(i)
+
+        case *float32:
+            *a, _, err = res.Float32(i)
+
+        case *float64:
+            *a, _, err = res.Float64(i)
+
+        case *int:
+            *a, _, err = res.Int(i)
+
+        case *int16:
+            *a, _, err = res.Int16(i)
+
+        case *int32:
+            *a, _, err = res.Int32(i)
+
+        case *int64:
+            *a, _, err = res.Int64(i)
+
+        case *string:
+            *a, _, err = res.String(i)
+        }
+
+        if err != nil {
+            panic(err)
+        }
+    }
+
+    return
+}
+
+// ScanNext scans the fields of the next row in the ResultSet, trying
+// to store field values into the specified arguments. The arguments
+// must be of pointer types. If a row has been fetched, fetched will
+// be true, otherwise false.
+func (res *ResultSet) ScanNext(args ...interface{}) (fetched bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.ScanNext"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = res.conn.logAndConvertPanic(x)
+		}
+	}()
+
+    hasRow, err := res.FetchNext()
+    if err != nil {
+        return
+    }
+    if !hasRow {
+        panic("failed to fetch row")
+    }
+
+    return true, res.Scan(args)
+}

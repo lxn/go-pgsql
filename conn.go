@@ -231,6 +231,30 @@ func (conn *Conn) Query(command string) (res *ResultSet, err os.Error) {
 	return
 }
 
+// Scan executes the command and scans the fields of the first row
+// in the ResultSet, trying to store field values into the specified
+// arguments. The arguments must be of pointer types. If a row has
+// been fetched, fetched will be true, otherwise false.
+func (conn *Conn) Scan(command string, args ...interface{}) (fetched bool, err os.Error) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.Scan"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = conn.logAndConvertPanic(x)
+		}
+	}()
+
+    res, err := conn.Query(command)
+    if err != nil {
+        return
+    }
+    defer res.Close()
+
+    return res.ScanNext(args)
+}
+
 // Status returns the current connection status.
 func (conn *Conn) Status() ConnStatus {
 	return conn.state.code()
