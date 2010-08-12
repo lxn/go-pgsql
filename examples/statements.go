@@ -65,7 +65,7 @@ func main() {
 	defer stmt.Close()
 
 	for id := 1; id <= 3; id++ {
-		err = idParam.SetValue(true)
+		err = idParam.SetValue(id)
 		if err != nil {
 			os.Exit(1)
 		}
