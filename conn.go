@@ -246,13 +246,13 @@ func (conn *Conn) Scan(command string, args ...interface{}) (fetched bool, err o
 		}
 	}()
 
-    res, err := conn.Query(command)
-    if err != nil {
-        return
-    }
-    defer res.Close()
+	res, err := conn.Query(command)
+	if err != nil {
+		return
+	}
+	defer res.Close()
 
-    return res.ScanNext(args)
+	return res.ScanNext(args)
 }
 
 // Status returns the current connection status.

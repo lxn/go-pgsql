@@ -248,11 +248,11 @@ func (stmt *Statement) Scan(args ...interface{}) (fetched bool, err os.Error) {
 		}
 	}()
 
-    res, err := stmt.Query()
-    if err != nil {
-        return
-    }
-    defer res.Close()
+	res, err := stmt.Query()
+	if err != nil {
+		return
+	}
+	defer res.Close()
 
-    return res.ScanNext(args)
+	return res.ScanNext(args)
 }

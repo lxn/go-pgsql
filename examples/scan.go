@@ -11,9 +11,9 @@ import (
 )
 
 type item struct {
-    id int
-    name string
-    price float
+	id    int
+	name  string
+	price float
 }
 
 func main() {
@@ -32,12 +32,12 @@ func main() {
 	}
 	defer conn.Close()
 
-    var x item
+	var x item
 
 	_, err = conn.Scan("SELECT 123, 'abc', 14.99;", &x.id, &x.name, &x.price)
 	if err != nil {
 		os.Exit(1)
 	}
-	
-    fmt.Printf("item x: '%+v'\n", x)
+
+	fmt.Printf("item x: '%+v'\n", x)
 }
