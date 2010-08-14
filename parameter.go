@@ -131,6 +131,9 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 			*t = *val
 			p.value = t
 
+		case uint64:
+			p.value = val
+
 		default:
 			p.panicInvalidValue(v)
 		}

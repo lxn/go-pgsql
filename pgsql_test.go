@@ -573,7 +573,7 @@ func Test_Insert_Time(t *testing.T) {
 				param("@t", Time, _t.Seconds()),
 				param("@ttz", TimeTZ, _ttz),
 				param("@ts", Timestamp, _ts),
-				param("@tstz", TimestampTZ, _tstz.Seconds()))
+				param("@tstz", TimestampTZ, uint64(_tstz.Seconds())))
 			if err != nil {
 				t.Error("failed to prepare insert statement:", err)
 				return

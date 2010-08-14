@@ -102,10 +102,14 @@ func (conn *Conn) writeFlush() {
 func (conn *Conn) writeBind(stmt *Statement) {
 	values := make([]string, len(stmt.params))
 
-	// Send Bind packet to server.
 	var paramValuesLen int
 	for i, param := range stmt.params {
-		switch val := param.value.(type) {
+		value := param.value
+		if val, ok := value.(uint64); ok {
+			value = int64(val)
+		}
+
+		switch val := value.(type) {
 		case bool:
 			if val {
 				values[i] = "t"
