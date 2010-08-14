@@ -566,6 +566,74 @@ func (res *ResultSet) TimeSeconds(ord int) (value int64, isNull bool, err os.Err
 	return
 }
 
+// Uint returns the value of the field with the specified ordinal as uint.
+func (res *ResultSet) Uint(ord int) (value uint, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Uint"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = res.conn.logAndConvertPanic(x)
+		}
+	}()
+
+	val, isNull, err := res.Int32(ord)
+	value = uint(val)
+	return
+}
+
+// Uint16 returns the value of the field with the specified ordinal as uint16.
+func (res *ResultSet) Uint16(ord int) (value uint16, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Uint16"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = res.conn.logAndConvertPanic(x)
+		}
+	}()
+
+	val, isNull, err := res.Int16(ord)
+	value = uint16(val)
+	return
+}
+
+// Uint32 returns the value of the field with the specified ordinal as uint32.
+func (res *ResultSet) Uint32(ord int) (value uint32, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Uint32"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = res.conn.logAndConvertPanic(x)
+		}
+	}()
+
+	val, isNull, err := res.Int32(ord)
+	value = uint32(val)
+	return
+}
+
+// Uint64 returns the value of the field with the specified ordinal as uint64.
+func (res *ResultSet) Uint64(ord int) (value uint64, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Uint64"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = res.conn.logAndConvertPanic(x)
+		}
+	}()
+
+	val, isNull, err := res.Int64(ord)
+	value = uint64(val)
+	return
+}
+
 // Scan scans the fields of the current row in the ResultSet, trying
 // to store field values into the specified arguments. The arguments
 // must be of pointer types.
@@ -624,6 +692,26 @@ func (res *ResultSet) Scan(args ...interface{}) (err os.Error) {
 			t, _, err = res.Time(i)
 			if err == nil {
 				*a = t
+			}
+
+		case *uint:
+			*a, _, err = res.Uint(i)
+
+		case *uint16:
+			*a, _, err = res.Uint16(i)
+
+		case *uint32:
+			*a, _, err = res.Uint32(i)
+
+		case *uint64:
+			switch res.fields[i].typeOID {
+			case _DATEOID, _TIMEOID, _TIMETZOID, _TIMESTAMPOID, _TIMESTAMPTZOID:
+				var seconds int64
+				seconds, _, err = res.TimeSeconds(i)
+				*a = uint64(seconds)
+
+			default:
+				*a, _, err = res.Uint64(i)
 			}
 		}
 

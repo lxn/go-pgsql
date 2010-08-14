@@ -370,17 +370,18 @@ func Test_DoStatementResultSetTests(t *testing.T) {
 }
 
 type item struct {
-	id     int
-	name   string
-	price  float
-	onSale bool
+	id       int
+	name     string
+	price    float
+	packUnit uint
+	onSale   bool
 }
 
 func Test_Conn_Scan(t *testing.T) {
 	withConn(t, func(conn *Conn) {
 		var x item
-		command := "SELECT 123, 'abc', 14.99, true;"
-		fetched, err := conn.Scan(command, &x.id, &x.name, &x.price, &x.onSale)
+		command := "SELECT 123, 'abc', 14.99, 4, true;"
+		fetched, err := conn.Scan(command, &x.id, &x.name, &x.price, &x.packUnit, &x.onSale)
 		if err != nil {
 			t.Error(err)
 			return
@@ -396,6 +397,9 @@ func Test_Conn_Scan(t *testing.T) {
 		}
 		if math.Fabs(float64(x.price)-14.99) > 0.000001 {
 			t.Errorf("price - have: %f, but want: 14.99", x.price)
+		}
+		if x.packUnit != 4 {
+			t.Errorf("packUnit - have: %d, but want: 4", x.packUnit)
 		}
 		if !x.onSale {
 			t.Error("onSale - have: true, but want: false")
@@ -581,13 +585,13 @@ func Test_Insert_Time(t *testing.T) {
 				t.Error("failed to execute insert statement:", err)
 			}
 
-			var seconds int64
+			var seconds uint64
 			_, err = conn.Scan(test.command, &seconds)
 			if err != nil {
 				t.Error(err)
 				return
 			}
-			if seconds != test.seconds {
+			if seconds != uint64(test.seconds) {
 				t.Errorf("'%s' failed - have: '%d', but want '%d'", test.command, seconds, test.seconds)
 			}
 
