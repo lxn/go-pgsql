@@ -71,6 +71,7 @@ type Conn struct {
 	backendPID                      int32
 	backendSecretKey                int32
 	onErrorDontRequireReadyForQuery bool
+	runtimeParameters               map[string]string
 }
 
 // Connect establishes a database connection.
@@ -95,7 +96,7 @@ func Connect(parameters *ConnParams) (conn *Conn, err os.Error) {
 	newConn.params = params
 
 	if params.Host == "" {
-		params.Host = "127.0.0.1"
+		params.Host = "localhost"
 	}
 	if params.Port == 0 {
 		params.Port = 5432
@@ -115,6 +116,8 @@ func Connect(parameters *ConnParams) (conn *Conn, err os.Error) {
 
 	newConn.reader = bufio.NewReader(tcpConn)
 	newConn.writer = bufio.NewWriter(tcpConn)
+
+	newConn.runtimeParameters = make(map[string]string)
 
 	newConn.writeStartup()
 
@@ -228,6 +231,17 @@ func (conn *Conn) Query(command string) (res *ResultSet, err os.Error) {
 
 	res = r
 
+	return
+}
+
+// RuntimeParameter returns the value of the specified runtime parameter.
+// If the value was successfully retrieved, ok is true, otherwise false.
+func (conn *Conn) RuntimeParameter(name string) (value string, ok bool) {
+	if conn.LogLevel >= LogVerbose {
+		defer conn.logExit(conn.logEnter("*Conn.RuntimeParameter"))
+	}
+
+	value, ok = conn.runtimeParameters[name]
 	return
 }
 

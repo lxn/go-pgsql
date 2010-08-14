@@ -43,7 +43,6 @@ func main() {
 	pgsql.DefaultLogLevel = pgsql.LogError
 
 	params := &pgsql.ConnParams{
-		Host:     "127.0.0.1",
 		Database: "testdatabase",
 		User:     "testuser",
 		Password: "testpassword",

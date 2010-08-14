@@ -7,6 +7,7 @@ package pgsql
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 // Parameter is used to set the value of a parameter in a Statement.
@@ -38,8 +39,8 @@ func (p *Parameter) Value() interface{} {
 }
 
 func (p *Parameter) panicInvalidValue(v interface{}) {
-	panic(fmt.Sprintf("Parameter %s: Invalid value for PostgreSQL type %s: '%v' (Go type: %T)",
-		p.name, p.typ, v, v))
+	panic(os.NewError(fmt.Sprintf("Parameter %s: Invalid value for PostgreSQL type %s: '%v' (Go type: %T)",
+		p.name, p.typ, v, v)))
 }
 
 // SetValue sets the current value of the Parameter.
@@ -51,12 +52,26 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 	defer func() {
 		if x := recover(); x != nil {
 			if p.stmt == nil {
-				err = x.(os.Error)
+				switch ex := x.(type) {
+				case os.Error:
+					err = ex
+
+				case string:
+					err = os.NewError(ex)
+
+				default:
+					err = os.NewError("pgsql.*Parameter.SetValue: D'oh!")
+				}
 			} else {
 				err = p.stmt.conn.logAndConvertPanic(x)
 			}
 		}
 	}()
+
+	if v == nil {
+		p.value = nil
+		return
+	}
 
 	switch p.typ {
 	case Bigint:
@@ -90,6 +105,20 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 			p.panicInvalidValue(v)
 		}
 		p.value = val
+
+	case Date, Time, TimeTZ, Timestamp, TimestampTZ:
+		switch val := v.(type) {
+		case int64:
+			p.value = val
+
+		case *time.Time:
+			t := new(time.Time)
+			*t = *val
+			p.value = t
+
+		default:
+			p.panicInvalidValue(v)
+		}
 
 	case Double:
 		switch val := v.(type) {

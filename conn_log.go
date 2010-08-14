@@ -27,12 +27,12 @@ func (conn *Conn) logError(level LogLevel, err os.Error) {
 }
 
 func (conn *Conn) logEnter(funcName string) string {
-	conn.log(LogDebug, "entering: ", "pgsqconn."+funcName)
+	conn.log(LogDebug, "entering: ", "pgsql."+funcName)
 	return funcName
 }
 
 func (conn *Conn) logExit(funcName string) {
-	conn.log(LogDebug, "exiting: ", "pgsqconn."+funcName)
+	conn.log(LogDebug, "exiting: ", "pgsql."+funcName)
 }
 
 func (conn *Conn) logAndConvertPanic(x interface{}) (err os.Error) {

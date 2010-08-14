@@ -59,68 +59,6 @@ func (conn *Conn) readString() string {
 	return string(b[0 : len(b)-1])
 }
 
-func (conn *Conn) readDataRow(res *ResultSet) {
-	// Just eat message length.
-	conn.readInt32()
-
-	fieldCount := conn.readInt16()
-
-	var ord int16
-	for ord = 0; ord < fieldCount; ord++ {
-		valLen := conn.readInt32()
-
-		var val []byte
-
-		if valLen == -1 {
-			val = nil
-		} else {
-			val = make([]byte, valLen)
-			conn.read(val)
-		}
-
-		res.values[ord] = val
-	}
-}
-
-func (conn *Conn) readRowDescription(res *ResultSet) {
-	// Just eat message length.
-	conn.readInt32()
-
-	fieldCount := conn.readInt16()
-
-	res.fields = make([]field, fieldCount)
-	res.values = make([][]byte, fieldCount)
-
-	var ord int16
-	for ord = 0; ord < fieldCount; ord++ {
-		res.fields[ord].name = conn.readString()
-
-		// Just eat table OID.
-		conn.readInt32()
-
-		// Just eat field OID.
-		conn.readInt16()
-
-		// Just eat field data type OID.
-		conn.readInt32()
-
-		// Just eat field size.
-		conn.readInt16()
-
-		// Just eat field type modifier.
-		conn.readInt32()
-
-		format := fieldFormat(conn.readInt16())
-		switch format {
-		case textFormat:
-		case binaryFormat:
-		default:
-			panic("unsupported field format")
-		}
-		res.fields[ord].format = format
-	}
-}
-
 func (conn *Conn) readAuthenticationRequest() {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.readAuthenticationRequest"))
@@ -242,6 +180,29 @@ func (conn *Conn) readCommandComplete(res *ResultSet) {
 	}
 }
 
+func (conn *Conn) readDataRow(res *ResultSet) {
+	// Just eat message length.
+	conn.readInt32()
+
+	fieldCount := conn.readInt16()
+
+	var ord int16
+	for ord = 0; ord < fieldCount; ord++ {
+		valLen := conn.readInt32()
+
+		var val []byte
+
+		if valLen == -1 {
+			val = nil
+		} else {
+			val = make([]byte, valLen)
+			conn.read(val)
+		}
+
+		res.values[ord] = val
+	}
+}
+
 func (conn *Conn) readEmptyQueryResponse() {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.readEmptyQueryResponse"))
@@ -323,6 +284,15 @@ func (conn *Conn) readErrorOrNoticeResponse(isError bool) {
 	}
 }
 
+func (conn *Conn) readNoData() {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.readNoData"))
+	}
+
+	// Just eat message length.
+	conn.readInt32()
+}
+
 func (conn *Conn) readParameterStatus() {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.readParameterStatus"))
@@ -337,6 +307,8 @@ func (conn *Conn) readParameterStatus() {
 	if conn.LogLevel >= LogDebug {
 		conn.logf(LogDebug, "ParameterStatus: Name: '%s', Value: '%s'", name, value)
 	}
+
+	conn.runtimeParameters[name] = value
 }
 
 func (conn *Conn) readParseComplete() {
@@ -381,6 +353,44 @@ func (conn *Conn) readReadyForQuery(res *ResultSet) {
 	conn.state = readyState{}
 }
 
+func (conn *Conn) readRowDescription(res *ResultSet) {
+	// Just eat message length.
+	conn.readInt32()
+
+	fieldCount := conn.readInt16()
+
+	res.fields = make([]field, fieldCount)
+	res.values = make([][]byte, fieldCount)
+
+	var ord int16
+	for ord = 0; ord < fieldCount; ord++ {
+		res.fields[ord].name = conn.readString()
+
+		// Just eat table OID.
+		conn.readInt32()
+
+		// Just eat field OID.
+		conn.readInt16()
+
+		res.fields[ord].typeOID = conn.readInt32()
+
+		// Just eat field size.
+		conn.readInt16()
+
+		// Just eat field type modifier.
+		conn.readInt32()
+
+		format := fieldFormat(conn.readInt16())
+		switch format {
+		case textFormat:
+		case binaryFormat:
+		default:
+			panic("unsupported field format")
+		}
+		res.fields[ord].format = format
+	}
+}
+
 func (conn *Conn) readBackendMessages(res *ResultSet) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.readBackendMessages"))
@@ -420,6 +430,10 @@ func (conn *Conn) readBackendMessages(res *ResultSet) {
 
 		case _ErrorResponse:
 			conn.readErrorOrNoticeResponse(true)
+
+		case _NoData:
+			conn.readNoData()
+			return
 
 		case _NoticeResponse:
 			conn.readErrorOrNoticeResponse(false)

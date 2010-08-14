@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"time"
 )
 
 type fieldFormat int16
@@ -19,8 +20,9 @@ const (
 )
 
 type field struct {
-	name   string
-	format fieldFormat
+	name    string
+	format  fieldFormat
+	typeOID int32
 }
 
 // ResultSet reads the results of a query, row by row, and provides methods to
@@ -480,6 +482,90 @@ func (res *ResultSet) String(ord int) (value string, isNull bool, err os.Error) 
 	return
 }
 
+// Time returns the value of the field with the specified ordinal as *time.Time.
+func (res *ResultSet) Time(ord int) (value *time.Time, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Time"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = res.conn.logAndConvertPanic(x)
+		}
+	}()
+
+	// We need to convert the parsed *time.Time to seconds and back,
+	// because otherwise the Weekday field will always equal 0 (Sunday).
+	// See http://code.google.com/p/go/issues/detail?id=1025
+	seconds, isNull, err := res.TimeSeconds(ord)
+	if err != nil {
+		return
+	}
+	if isNull {
+		return
+	}
+
+	value = time.SecondsToUTC(seconds)
+
+	return
+}
+
+// TimeSeconds returns the value of the field with the specified ordinal as int64.
+func (res *ResultSet) TimeSeconds(ord int) (value int64, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.TimeSeconds"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = res.conn.logAndConvertPanic(x)
+		}
+	}()
+
+	isNull, err = res.IsNull(ord)
+	if isNull || err != nil {
+		return
+	}
+
+	val := res.values[ord]
+
+	var t *time.Time
+
+	switch res.fields[ord].format {
+	case textFormat:
+		var format string
+		switch res.fields[ord].typeOID {
+		case _DATEOID:
+			format = "2006-01-02"
+
+		case _TIMEOID, _TIMETZOID:
+			format = "15:04:05"
+
+		case _TIMESTAMPOID, _TIMESTAMPTZOID:
+			format = "2006-01-02 15:04:05"
+		}
+
+		var tzFormatExtra, tzValueExtra string
+		switch res.fields[ord].typeOID {
+		case _TIMETZOID, _TIMESTAMPTZOID:
+			tzFormatExtra = "-0700"
+			tzValueExtra = "00"
+		}
+
+		t, err = time.Parse(format+tzFormatExtra, string(val)+tzValueExtra)
+		if err != nil {
+			panic(err)
+		}
+
+	case binaryFormat:
+		panic("not implemented")
+	}
+
+	value = t.Seconds()
+
+	return
+}
+
 // Scan scans the fields of the current row in the ResultSet, trying
 // to store field values into the specified arguments. The arguments
 // must be of pointer types.
@@ -522,10 +608,23 @@ func (res *ResultSet) Scan(args ...interface{}) (err os.Error) {
 			*a, _, err = res.Int32(i)
 
 		case *int64:
-			*a, _, err = res.Int64(i)
+			switch res.fields[i].typeOID {
+			case _DATEOID, _TIMEOID, _TIMETZOID, _TIMESTAMPOID, _TIMESTAMPTZOID:
+				*a, _, err = res.TimeSeconds(i)
+
+			default:
+				*a, _, err = res.Int64(i)
+			}
 
 		case *string:
 			*a, _, err = res.String(i)
+
+		case **time.Time:
+			var t *time.Time
+			t, _, err = res.Time(i)
+			if err == nil {
+				*a = t
+			}
 		}
 
 		if err != nil {

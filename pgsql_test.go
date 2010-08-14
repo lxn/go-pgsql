@@ -5,13 +5,15 @@
 package pgsql
 
 import (
+	"fmt"
 	"math"
+	"strings"
 	"testing"
+	"time"
 )
 
 func validParams() *ConnParams {
 	return &ConnParams{
-		Host:     "127.0.0.1",
 		Database: "testdatabase",
 		User:     "testuser",
 		Password: "testpassword",
@@ -82,6 +84,16 @@ func withStatementResultSet(t *testing.T, command string, params []*Parameter, f
 
 		f(res)
 	})
+}
+
+func param(name string, typ Type, value interface{}) *Parameter {
+	p := NewParameter(name, typ)
+	err := p.SetValue(value)
+	if err != nil {
+		panic(err)
+	}
+
+	return p
 }
 
 func Test_Connect_NilParams_ExpectErrNotNil(t *testing.T) {
@@ -389,4 +401,206 @@ func Test_Conn_Scan(t *testing.T) {
 			t.Error("onSale - have: true, but want: false")
 		}
 	})
+}
+
+type timeTest struct {
+	command, timeString string
+	seconds             int64
+}
+
+func newTimeTest(commandTemplate, format, value string, tz bool) *timeTest {
+	test := new(timeTest)
+
+	var tzFormatExtra, tzValueExtra string
+	if tz {
+		tzFormatExtra = "-0700"
+		tzValueExtra = "+0200"
+	}
+
+	t, _ := time.Parse(format+tzFormatExtra, value+tzValueExtra)
+	t = time.SecondsToUTC(t.Seconds())
+
+	if strings.Index(commandTemplate, "%s") > -1 {
+		test.command = fmt.Sprintf(commandTemplate, value)
+	} else {
+		test.command = commandTemplate
+	}
+	test.seconds = t.Seconds()
+	test.timeString = t.String()
+
+	return test
+}
+
+const (
+	dateFormat      = "2006-01-02"
+	timeFormat      = "15:04:05"
+	timestampFormat = "2006-01-02 15:04:05"
+)
+
+func Test_Conn_Scan_Time(t *testing.T) {
+	tests := []*timeTest{
+		newTimeTest(
+			"SELECT DATE '%s';",
+			dateFormat,
+			"2010-08-14",
+			false),
+		newTimeTest(
+			"SELECT TIME '%s';",
+			timeFormat,
+			"18:43:32",
+			false),
+		newTimeTest(
+			"SELECT TIME WITH TIME ZONE '%s';",
+			timeFormat,
+			"18:43:32",
+			true),
+		newTimeTest(
+			"SELECT TIMESTAMP '%s';",
+			timestampFormat,
+			"2010-08-14 18:43:32",
+			false),
+		newTimeTest(
+			"SELECT TIMESTAMP WITH TIME ZONE '%s';",
+			timestampFormat,
+			"2010-08-14 18:43:32",
+			true),
+	}
+
+	for _, test := range tests {
+		withConn(t, func(conn *Conn) {
+			_, err := conn.Execute("SET TimeZone = +02; SET DateStyle = ISO")
+			if err != nil {
+				t.Error("failed to set time zone or date style:", err)
+				return
+			}
+
+			var seconds int64
+			_, err = conn.Scan(test.command, &seconds)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if seconds != test.seconds {
+				t.Errorf("'%s' failed - have: '%d', but want '%d'", test.command, seconds, test.seconds)
+			}
+
+			var tm *time.Time
+			_, err = conn.Scan(test.command, &tm)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			timeString := tm.String()
+			if timeString != test.timeString {
+				t.Errorf("'%s' failed - have: '%s', but want '%s'", test.command, timeString, test.timeString)
+			}
+		})
+	}
+}
+
+func Test_Insert_Time(t *testing.T) {
+	tests := []*timeTest{
+		newTimeTest(
+			"SELECT _d FROM _gopgsql_test_time;",
+			dateFormat,
+			"2010-08-14",
+			false),
+		newTimeTest(
+			"SELECT _t FROM _gopgsql_test_time;",
+			timeFormat,
+			"20:03:38",
+			false),
+		newTimeTest(
+			"SELECT _ttz FROM _gopgsql_test_time;",
+			timeFormat,
+			"20:03:38",
+			true),
+		newTimeTest(
+			"SELECT _ts FROM _gopgsql_test_time;",
+			timestampFormat,
+			"2010-08-14 20:03:38",
+			false),
+		newTimeTest(
+			"SELECT _tstz FROM _gopgsql_test_time;",
+			timestampFormat,
+			"2010-08-14 20:03:38",
+			true),
+	}
+
+	for _, test := range tests {
+		withConn(t, func(conn *Conn) {
+			conn.Execute("DROP TABLE _gopgsql_test_time;")
+
+			_, err := conn.Execute(
+				`CREATE TABLE _gopgsql_test_time
+				(
+				_d DATE,
+				_t TIME,
+				_ttz TIME WITH TIME ZONE,
+				_ts TIMESTAMP,
+				_tstz TIMESTAMP WITH TIME ZONE
+				);`)
+			if err != nil {
+				t.Error("failed to create table:", err)
+				return
+			}
+			defer func() {
+				conn.Execute("DROP TABLE _gopgsql_test_time;")
+			}()
+
+			_, err = conn.Execute("SET TimeZone = +02; SET DateStyle = ISO")
+			if err != nil {
+				t.Error("failed to set time zone or date style:", err)
+				return
+			}
+
+			_d, _ := time.Parse(dateFormat, "2010-08-14")
+			_t, _ := time.Parse(timeFormat+"", "20:03:38")
+			_ttz, _ := time.Parse(timeFormat+"", "20:03:38")
+			_ts, _ := time.Parse(timestampFormat, "2010-08-14 20:03:38")
+			_tstz, _ := time.Parse(timestampFormat+"", "2010-08-14 20:03:38")
+
+			stmt, err := conn.Prepare(
+				`INSERT INTO _gopgsql_test_time
+				(_d, _t, _ttz, _ts, _tstz)
+				VALUES
+				(@d, @t, @ttz, @ts, @tstz);`,
+				param("@d", Date, _d),
+				param("@t", Time, _t.Seconds()),
+				param("@ttz", TimeTZ, _ttz),
+				param("@ts", Timestamp, _ts),
+				param("@tstz", TimestampTZ, _tstz.Seconds()))
+			if err != nil {
+				t.Error("failed to prepare insert statement:", err)
+				return
+			}
+			defer stmt.Close()
+
+			_, err = stmt.Execute()
+			if err != nil {
+				t.Error("failed to execute insert statement:", err)
+			}
+
+			var seconds int64
+			_, err = conn.Scan(test.command, &seconds)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if seconds != test.seconds {
+				t.Errorf("'%s' failed - have: '%d', but want '%d'", test.command, seconds, test.seconds)
+			}
+
+			var tm *time.Time
+			_, err = conn.Scan(test.command, &tm)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			timeString := tm.String()
+			if timeString != test.timeString {
+				t.Errorf("'%s' failed - have: '%s', but want '%s'", test.command, timeString, test.timeString)
+			}
+		})
+	}
 }

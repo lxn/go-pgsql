@@ -85,15 +85,20 @@ const (
 type Type int32
 
 const (
-	Boolean  Type = _BOOLOID
-	Char     Type = _CHAROID
-	Real     Type = _FLOAT4OID
-	Double   Type = _FLOAT8OID
-	Smallint Type = _INT2OID
-	Integer  Type = _INT4OID
-	Bigint   Type = _INT8OID
-	Text     Type = _TEXTOID
-	Varchar  Type = _VARCHAROID
+	Boolean     Type = _BOOLOID
+	Char        Type = _CHAROID
+	Date        Type = _DATEOID
+	Real        Type = _FLOAT4OID
+	Double      Type = _FLOAT8OID
+	Smallint    Type = _INT2OID
+	Integer     Type = _INT4OID
+	Bigint      Type = _INT8OID
+	Text        Type = _TEXTOID
+	Time        Type = _TIMEOID
+	TimeTZ      Type = _TIMETZOID
+	Timestamp   Type = _TIMESTAMPOID
+	TimestampTZ Type = _TIMESTAMPTZOID
+	Varchar     Type = _VARCHAROID
 )
 
 func (t Type) String() string {
@@ -103,6 +108,9 @@ func (t Type) String() string {
 
 	case Char:
 		return "Char"
+
+	case Date:
+		return "Date"
 
 	case Real:
 		return "Real"
@@ -121,6 +129,18 @@ func (t Type) String() string {
 
 	case Text:
 		return "Text"
+
+	case Time:
+		return "Time"
+
+	case TimeTZ:
+		return "TimeTZ"
+
+	case Timestamp:
+		return "Timestamp"
+
+	case TimestampTZ:
+		return "TimestampTZ"
 
 	case Varchar:
 		return "Varchar"

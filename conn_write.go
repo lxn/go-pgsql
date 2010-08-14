@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"time"
 )
 
 func (conn *Conn) flush() {
@@ -134,12 +135,39 @@ func (conn *Conn) writeBind(stmt *Statement) {
 			values[i] = strconv.Itoa(int(val))
 
 		case int64:
-			values[i] = strconv.Itoa64(val)
+			switch param.typ {
+			case Date:
+				values[i] = time.SecondsToUTC(val).Format("2006-01-02")
+
+			case Time, TimeTZ:
+				values[i] = time.SecondsToUTC(val).Format("15:04:05")
+
+			case Timestamp, TimestampTZ:
+				values[i] = time.SecondsToUTC(val).Format("2006-01-02 15:04:05")
+
+			default:
+				values[i] = strconv.Itoa64(val)
+			}
 
 		case nil:
 
 		case string:
 			values[i] = val
+
+		case *time.Time:
+			switch param.typ {
+			case Date:
+				values[i] = val.Format("2006-01-02")
+
+			case Time, TimeTZ:
+				values[i] = val.Format("15:04:05")
+
+			case Timestamp, TimestampTZ:
+				values[i] = val.Format("2006-01-02 15:04:05")
+
+			default:
+				panic("invalid use of *time.Time")
+			}
 
 		default:
 			panic("unsupported parameter type")
@@ -212,6 +240,12 @@ func (conn *Conn) writeExecute(stmt *Statement) {
 }
 
 func (conn *Conn) writeParse(stmt *Statement) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.writeParse"))
+
+		conn.log(LogDebug, fmt.Sprintf("stmt.ActualCommand: '%s'", stmt.ActualCommand()))
+	}
+
 	msgLen := int32(4 +
 		len(stmt.name) + 1 +
 		len(stmt.actualCommand) + 1 +
@@ -245,6 +279,12 @@ func (conn *Conn) writePasswordMessage(password string) {
 }
 
 func (conn *Conn) writeQuery(command string) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.writeQuery"))
+
+		conn.log(LogDebug, fmt.Sprintf("command: '%s'", command))
+	}
+
 	conn.writeFrontendMessageCode(_Query)
 	conn.writeInt32(int32(4 + len(command) + 1))
 	conn.writeString0(command)

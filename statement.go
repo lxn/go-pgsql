@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strings"
 )
 
 var nextStatementId, nextPortalId uint64
@@ -25,28 +24,55 @@ type Statement struct {
 	name2param                               map[string]*Parameter
 }
 
+func replaceParameterNameInSubstring(s, old, new string, buf *bytes.Buffer, paramRegExp *regexp.Regexp) {
+	matchIndices := paramRegExp.FindStringIndex(s)
+	prevMatchEnd := 1
+
+	for i := 0; i < len(matchIndices); i += 2 {
+		matchStart := matchIndices[i]
+		matchEnd := matchIndices[i+1]
+
+		buf.WriteString(s[prevMatchEnd-1 : matchStart+1])
+		buf.WriteString(new)
+
+		prevMatchEnd = matchEnd
+	}
+
+	if prevMatchEnd > 1 {
+		buf.WriteString(s[prevMatchEnd-1:])
+		return
+	}
+
+	buf.WriteString(s)
+}
+
 func replaceParameterName(command, old, new string) string {
+	paramRegExp := regexp.MustCompile("[\\- |\n\r\t,)(;=+/<>][:|@]" + old[1:] + "([\\- |\n\r\t,)(;=+/<>]|$)")
+
 	buf := bytes.NewBuffer(nil)
 
 	quoteIndices := quoteRegExp.FindStringIndex(command)
 	prevQuoteEnd := 0
+
 	for i := 0; i < len(quoteIndices); i += 2 {
 		quoteStart := quoteIndices[i]
 		quoteEnd := quoteIndices[i+1]
 
-		buf.WriteString(strings.Replace(command[prevQuoteEnd:quoteStart], old, new, -1))
+		replaceParameterNameInSubstring(command[prevQuoteEnd:quoteStart], old, new, buf, paramRegExp)
 		buf.WriteString(command[quoteStart:quoteEnd])
 
 		prevQuoteEnd = quoteEnd
 	}
 
 	if buf.Len() > 0 {
-		buf.WriteString(strings.Replace(command[prevQuoteEnd:], old, new, -1))
+		replaceParameterNameInSubstring(command[prevQuoteEnd:], old, new, buf, paramRegExp)
 
 		return buf.String()
 	}
 
-	return strings.Replace(command, old, new, -1)
+	replaceParameterNameInSubstring(command, old, new, buf, paramRegExp)
+
+	return buf.String()
 }
 
 func adjustCommand(command string, params []*Parameter) string {
