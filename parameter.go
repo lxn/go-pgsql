@@ -76,6 +76,9 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 	switch p.typ {
 	case Bigint:
 		switch val := v.(type) {
+		case byte:
+			p.value = int64(val)
+
 		case int:
 			p.value = int64(val)
 
@@ -83,6 +86,18 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 			p.value = int64(val)
 
 		case int32:
+			p.value = int64(val)
+
+		case uint:
+			p.value = int64(val)
+
+		case uint16:
+			p.value = int64(val)
+
+		case uint32:
+			p.value = int64(val)
+
+		case uint64:
 			p.value = int64(val)
 
 		case int64:
@@ -137,10 +152,22 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 
 	case Integer:
 		switch val := v.(type) {
+		case byte:
+			p.value = int32(val)
+
 		case int:
 			p.value = int32(val)
 
 		case int16:
+			p.value = int32(val)
+
+		case uint:
+			p.value = int32(val)
+
+		case uint16:
+			p.value = int32(val)
+
+		case uint32:
 			p.value = int32(val)
 
 		case int32:
@@ -163,11 +190,19 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 		}
 
 	case Smallint:
-		val, ok := v.(int16)
-		if !ok {
+		switch val := v.(type) {
+		case byte:
+			p.value = int16(val)
+
+		case uint16:
+			p.value = int16(val)
+
+		case int16:
+			p.value = val
+
+		default:
 			p.panicInvalidValue(v)
 		}
-		p.value = val
 	}
 
 	return
