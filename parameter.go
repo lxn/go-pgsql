@@ -28,6 +28,11 @@ func (p *Parameter) Name() string {
 	return p.name
 }
 
+// Statement returns the *Statement this Parameter is associated with.
+func (p *Parameter) Statement() *Statement {
+	return p.stmt
+}
+
 // Type returns the PostgreSQL data type of the Parameter.
 func (p *Parameter) Type() Type {
 	return p.typ

@@ -109,6 +109,16 @@ func (res *ResultSet) eatAllResultRows() (err os.Error) {
 	return
 }
 
+// Conn returns the *Conn this ResultSet is associated with.
+func (res *ResultSet) Conn() *Conn {
+	return res.conn
+}
+
+// Statement returns the *Statement this ResultSet is associated with.
+func (res *ResultSet) Statement() *Statement {
+	return res.stmt
+}
+
 // NextResult moves the ResultSet to the next result, if there is one.
 // In this case true is returned, otherwise false.
 // Statements support a single result only, use *Conn.Query if you need

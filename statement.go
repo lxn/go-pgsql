@@ -120,6 +120,11 @@ func newStatement(conn *Conn, command string, params []*Parameter) *Statement {
 	return stmt
 }
 
+// Conn returns the *Conn this Statement is associated with.
+func (stmt *Statement) Conn() *Conn {
+	return stmt.conn
+}
+
 // Parameter returns the Parameter with the specified name or nil, if the Statement has no Parameter with that name.
 func (stmt *Statement) Parameter(name string) *Parameter {
 	conn := stmt.conn
