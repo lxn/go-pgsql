@@ -216,7 +216,7 @@ func (conn *Conn) parseParams(s string) *connParams {
 
 // Connect establishes a database connection.
 //
-// Parameter settings in connStr have to be separated by a single space and are
+// Parameter settings in connStr have to be separated by whitespace and are
 // expected in keyword = value form. Spaces around equal signs are optional.
 // Use single quotes for empty values or values containing spaces.
 //
