@@ -334,17 +334,7 @@ func (conn *Conn) readReadyForQuery(res *ResultSet) {
 		conn.log(LogDebug, "Transaction Status: ", string([]byte{txStatus}))
 	}
 
-	// TODO: Find out if and how we should handle these.
-	/*	switch txStatus {
-		case 'I':
-
-		case 'T':
-
-		case 'E':
-
-		default:
-			panic("unknown transaction status")
-	}*/
+	conn.transactionStatus = TransactionStatus(txStatus)
 
 	if res != nil {
 		res.allResultsComplete = true

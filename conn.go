@@ -60,6 +60,30 @@ func (s ConnStatus) String() string {
 	return "Unknown"
 }
 
+// TransactionStatus represents the transaction status of a connection.
+type TransactionStatus byte
+
+const (
+	NotInTransaction   TransactionStatus = 'I'
+	InTransaction      TransactionStatus = 'T'
+	ErrorInTransaction TransactionStatus = 'E'
+)
+
+func (s TransactionStatus) String() string {
+	switch s {
+	case NotInTransaction:
+		return "Not in transaction"
+
+	case InTransaction:
+		return "In transaction"
+
+	case ErrorInTransaction:
+		return "Error in transaction"
+	}
+
+	return "Unknown"
+}
+
 // Conn represents a PostgreSQL database connection.
 type Conn struct {
 	LogLevel                        LogLevel
@@ -74,6 +98,7 @@ type Conn struct {
 	runtimeParameters               map[string]string
 	nextStatementId                 uint64
 	nextPortalId                    uint64
+	transactionStatus               TransactionStatus
 }
 
 // Connect establishes a database connection.
@@ -127,6 +152,8 @@ func Connect(parameters *ConnParams) (conn *Conn, err os.Error) {
 
 	newConn.state = readyState{}
 	newConn.params = nil
+
+	newConn.transactionStatus = NotInTransaction
 
 	conn = newConn
 
@@ -274,6 +301,11 @@ func (conn *Conn) Scan(command string, args ...interface{}) (fetched bool, err o
 // Status returns the current connection status.
 func (conn *Conn) Status() ConnStatus {
 	return conn.state.code()
+}
+
+// TransactionStatus returns the current transaction status of the connection.
+func (conn *Conn) TransactionStatus() TransactionStatus {
+	return conn.transactionStatus
 }
 
 // WithTransaction starts a transaction, then calls function f.
