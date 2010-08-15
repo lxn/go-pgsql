@@ -7,6 +7,7 @@ package pgsql
 import (
 	"fmt"
 	"math"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -607,4 +608,104 @@ func Test_Insert_Time(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_Conn_WithSavepoint(t *testing.T) {
+	withConn(t, func(conn *Conn) {
+		conn.Execute("DROP TABLE _gopgsql_test_account;")
+
+		_, err := conn.Execute(`
+			CREATE TABLE _gopgsql_test_account
+			(
+				name VARCHAR(20) PRIMARY KEY,
+				balance REAL NOT NULL
+			);
+			INSERT INTO _gopgsql_test_account (name, balance) VALUES ('Alice', 100.0);
+			INSERT INTO _gopgsql_test_account (name, balance) VALUES ('Bob', 0.0);
+			INSERT INTO _gopgsql_test_account (name, balance) VALUES ('Wally', 0.0);
+			`)
+		if err != nil {
+			t.Error("failed to create table:", err)
+			return
+		}
+		defer func() {
+			conn.Execute("DROP TABLE _gopgsql_test_account;")
+		}()
+
+		err = conn.WithTransaction(ReadCommittedIsolation, func() (err os.Error) {
+			_, err = conn.Execute(`
+				UPDATE _gopgsql_test_account
+				SET balance = balance - 100.0
+				WHERE name = 'Alice';`)
+			if err != nil {
+				t.Error("failed to execute update:", err)
+				return
+			}
+
+			err = conn.WithSavepoint(ReadCommittedIsolation, func() (err os.Error) {
+				_, err = conn.Execute(`
+					UPDATE _gopgsql_test_account
+					SET balance = balance + 100.0
+					WHERE name = 'Bob';`)
+				if err != nil {
+					t.Error("failed to execute update:", err)
+					return
+				}
+
+				err = os.NewError("wrong credit account")
+
+				return
+			})
+
+			_, err = conn.Execute(`
+				UPDATE _gopgsql_test_account
+				SET balance = balance + 100.0
+				WHERE name = 'Wally';`)
+			if err != nil {
+				t.Error("failed to execute update:", err)
+				return
+			}
+
+			return
+		})
+
+		var rs *ResultSet
+		rs, err = conn.Query("SELECT name, balance FROM _gopgsql_test_account;")
+		if err != nil {
+			t.Error("failed to query:", err)
+			return
+		}
+		defer rs.Close()
+
+		have := make(map[string]float64)
+		want := map[string]float64{
+			"Alice": 0,
+			"Bob":   0,
+			"Wally": 100,
+		}
+		var name string
+		var balance float64
+		var fetched bool
+
+		for {
+			fetched, err = rs.ScanNext(&name, &balance)
+			if err != nil {
+				t.Error("failed to scan next:", err)
+				return
+			}
+			if !fetched {
+				break
+			}
+
+			have[name] = balance
+		}
+
+		for name, haveBalance := range have {
+			wantBalance := want[name]
+
+			if math.Fabs(haveBalance-wantBalance) > 0.000001 {
+				t.Errorf("name: %s have: %f, but want: %f", name, haveBalance, wantBalance)
+			}
+		}
+	})
 }

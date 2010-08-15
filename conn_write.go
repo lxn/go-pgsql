@@ -246,8 +246,10 @@ func (conn *Conn) writeExecute(stmt *Statement) {
 func (conn *Conn) writeParse(stmt *Statement) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.writeParse"))
+	}
 
-		conn.log(LogDebug, fmt.Sprintf("stmt.ActualCommand: '%s'", stmt.ActualCommand()))
+	if conn.LogLevel >= LogCommand {
+		conn.log(LogCommand, fmt.Sprintf("stmt.ActualCommand: '%s'", stmt.ActualCommand()))
 	}
 
 	msgLen := int32(4 +
@@ -285,8 +287,10 @@ func (conn *Conn) writePasswordMessage(password string) {
 func (conn *Conn) writeQuery(command string) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.writeQuery"))
+	}
 
-		conn.log(LogDebug, fmt.Sprintf("command: '%s'", command))
+	if conn.LogLevel >= LogCommand {
+		conn.log(LogCommand, fmt.Sprintf("command: '%s'", command))
 	}
 
 	conn.writeFrontendMessageCode(_Query)

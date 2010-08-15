@@ -13,15 +13,29 @@ import (
 	"os"
 )
 
-// LogLevel is used to control which messages are written to the log.
+// LogLevel is used to control what written to the log.
 type LogLevel int
 
 const (
+	// Log nothing.
 	LogNothing LogLevel = iota
+
+	// Log fatal errors.
 	LogFatal
+
+	// Log all errors.
 	LogError
+
+	// Log errors and warnings.
 	LogWarning
+
+	// Log errors, warnings and sent commands.
+	LogCommand
+
+	// Log errors, warnings, sent commands and additional debug info.
 	LogDebug
+
+	// Log everything.
 	LogVerbose
 )
 
@@ -60,25 +74,45 @@ func (s ConnStatus) String() string {
 	return "Unknown"
 }
 
+// IsolationLevel represents the isolation level of a transaction.
+type IsolationLevel int
+
+const (
+	ReadCommittedIsolation IsolationLevel = iota
+	SerializableIsolation
+)
+
+func (il IsolationLevel) String() string {
+	switch il {
+	case ReadCommittedIsolation:
+		return "Read Committed"
+
+	case SerializableIsolation:
+		return "Serializable"
+	}
+
+	return "Unknown"
+}
+
 // TransactionStatus represents the transaction status of a connection.
 type TransactionStatus byte
 
 const (
-	NotInTransaction   TransactionStatus = 'I'
-	InTransaction      TransactionStatus = 'T'
-	ErrorInTransaction TransactionStatus = 'E'
+	NotInTransaction    TransactionStatus = 'I'
+	InTransaction       TransactionStatus = 'T'
+	InFailedTransaction TransactionStatus = 'E'
 )
 
 func (s TransactionStatus) String() string {
 	switch s {
 	case NotInTransaction:
-		return "Not in transaction"
+		return "Not In Transaction"
 
 	case InTransaction:
-		return "In transaction"
+		return "In Transaction"
 
-	case ErrorInTransaction:
-		return "Error in transaction"
+	case InFailedTransaction:
+		return "In Failed Transaction"
 	}
 
 	return "Unknown"
@@ -98,6 +132,7 @@ type Conn struct {
 	runtimeParameters               map[string]string
 	nextStatementId                 uint64
 	nextPortalId                    uint64
+	nextSavepointId                 uint64
 	transactionStatus               TransactionStatus
 }
 
@@ -308,24 +343,97 @@ func (conn *Conn) TransactionStatus() TransactionStatus {
 	return conn.transactionStatus
 }
 
-// WithTransaction starts a transaction, then calls function f.
-// If f returns an error or panicks, the transaction is rolled back,
-// otherwise it is committed.
-func (conn *Conn) WithTransaction(f func() os.Error) (err os.Error) {
+// WithTransaction starts a new transaction, if none is in progress, then
+// calls f. If f returns an error or panicks, the transaction is rolled back,
+// otherwise it is committed. If the connection is in a failed transaction when
+// calling WithTransaction, this function immediately returns with an error,
+// without calling f. In case of an active transaction without error,
+// WithTransaction just calls f.
+func (conn *Conn) WithTransaction(isolation IsolationLevel, f func() os.Error) (err os.Error) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.WithTransaction"))
+	}
+
+	oldStatus := conn.transactionStatus
+
+	if oldStatus == InFailedTransaction {
+		return conn.logAndConvertPanic("error in transaction")
 	}
 
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)
 		}
-		if err != nil {
+		if err == nil && conn.transactionStatus == InFailedTransaction {
+			err = conn.logAndConvertPanic("error in transaction")
+		}
+		if err != nil && oldStatus == NotInTransaction {
 			conn.Execute("ROLLBACK;")
 		}
 	}()
 
-	_, err = conn.Execute("BEGIN;")
+	if oldStatus == NotInTransaction {
+		var isol string
+		if isolation == SerializableIsolation {
+			isol = "SERIALIZABLE"
+		} else {
+			isol = "READ COMMITTED"
+		}
+		cmd := fmt.Sprintf("BEGIN; SET TRANSACTION ISOLATION LEVEL %s;", isol)
+		_, err = conn.Execute(cmd)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	err = f()
+	if err != nil {
+		panic(err)
+	}
+
+	if oldStatus == NotInTransaction && conn.transactionStatus == InTransaction {
+		_, err = conn.Execute("COMMIT;")
+	}
+	return
+}
+
+// WithSavepoint creates a transaction savepoint, if the connection is in an
+// active transaction without errors, then calls f. If f returns an error or
+// panicks, the transaction is rolled back to the savepoint. If the connection
+// is in a failed transaction when calling WithSavepoint, this function
+// immediately returns with an error, without calling f. If no transaction is in
+// progress, instead of creating a savepoint, a new transaction is started.
+func (conn *Conn) WithSavepoint(isolation IsolationLevel, f func() os.Error) (err os.Error) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.WithSavepoint"))
+	}
+
+	oldStatus := conn.transactionStatus
+
+	switch oldStatus {
+	case InFailedTransaction:
+		return conn.logAndConvertPanic("error in transaction")
+
+	case NotInTransaction:
+		return conn.WithTransaction(isolation, f)
+	}
+
+	savepointName := fmt.Sprintf("sp%d", conn.nextSavepointId)
+	conn.nextSavepointId++
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = conn.logAndConvertPanic(x)
+		}
+		if err == nil && conn.transactionStatus == InFailedTransaction {
+			err = conn.logAndConvertPanic("error in transaction")
+		}
+		if err != nil {
+			conn.Execute(fmt.Sprintf("ROLLBACK TO %s;", savepointName))
+		}
+	}()
+
+	_, err = conn.Execute(fmt.Sprintf("SAVEPOINT %s;", savepointName))
 	if err != nil {
 		panic(err)
 	}
@@ -335,6 +443,5 @@ func (conn *Conn) WithTransaction(f func() os.Error) (err os.Error) {
 		panic(err)
 	}
 
-	_, err = conn.Execute("COMMIT;")
 	return
 }

@@ -168,14 +168,7 @@ func (conn *Conn) readCommandComplete(res *ResultSet) {
 	if res != nil {
 		parts := strings.Split(tag, " ", -1)
 
-		rowsAffected, err := strconv.Atoi64(parts[len(parts)-1])
-		if err != nil {
-			if conn.LogLevel >= LogWarning {
-				conn.log(LogWarning, "failed to retrieve affected row count")
-			}
-		}
-
-		res.rowsAffected = rowsAffected
+		res.rowsAffected, _ = strconv.Atoi64(parts[len(parts)-1])
 		res.currentResultComplete = true
 	}
 }
