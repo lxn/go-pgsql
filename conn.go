@@ -13,7 +13,7 @@ import (
 	"os"
 )
 
-// LogLevel is used to control what written to the log.
+// LogLevel is used to control what is written to the log.
 type LogLevel int
 
 const (
