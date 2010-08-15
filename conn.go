@@ -8,9 +8,13 @@ package pgsql
 
 import (
 	"bufio"
+	"bytes"
+	"container/vector"
 	"fmt"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 )
 
 // LogLevel is used to control what is written to the log.
@@ -39,9 +43,7 @@ const (
 	LogVerbose
 )
 
-var DefaultLogLevel LogLevel
-
-type ConnParams struct {
+type connParams struct {
 	Host           string
 	Port           int
 	User           string
@@ -124,7 +126,7 @@ type Conn struct {
 	tcpConn                         net.Conn
 	reader                          *bufio.Reader
 	writer                          *bufio.Writer
-	params                          *ConnParams
+	params                          *connParams
 	state                           state
 	backendPID                      int32
 	backendSecretKey                int32
@@ -136,11 +138,105 @@ type Conn struct {
 	transactionStatus               TransactionStatus
 }
 
+func parseParamsInNotQuotedSubstring(s string, name2value map[string]string) (rightmostKeyword string) {
+	var tokens vector.StringVector
+
+	for {
+		index := strings.IndexAny(s, "= \n\r\t")
+		if index == -1 {
+			break
+		}
+
+		token := s[0:index]
+		if token != "" {
+			tokens.Push(token)
+		}
+		s = s[index+1:]
+	}
+	if len(s) > 0 {
+		tokens.Push(s)
+	}
+
+	for i := 0; i < len(tokens)-1; i += 2 {
+		name2value[tokens[i]] = tokens[i+1]
+	}
+
+	if len(tokens) > 0 && len(tokens)%2 == 1 {
+		rightmostKeyword = tokens[len(tokens)-1]
+	}
+
+	return
+}
+
+func (conn *Conn) parseParams(s string) *connParams {
+	name2value := make(map[string]string)
+
+	quoteIndexPairs := quoteRegExp.FindAllStringIndex(s, -1)
+	prevQuoteEnd := 0
+
+	for _, pair := range quoteIndexPairs {
+		quoteStart := pair[0]
+		quoteEnd := pair[1]
+
+		rightmostKeyword := parseParamsInNotQuotedSubstring(s[prevQuoteEnd:quoteStart], name2value)
+		if rightmostKeyword != "" {
+			name2value[rightmostKeyword] = s[quoteStart+1 : quoteEnd-1]
+		}
+
+		prevQuoteEnd = quoteEnd
+	}
+
+	if prevQuoteEnd > 0 {
+		parseParamsInNotQuotedSubstring(s[prevQuoteEnd:], name2value)
+	} else {
+		parseParamsInNotQuotedSubstring(s, name2value)
+	}
+
+	params := new(connParams)
+
+	params.Host = name2value["host"]
+	params.Port, _ = strconv.Atoi(name2value["port"])
+	params.Database = name2value["dbname"]
+	params.User = name2value["user"]
+	params.Password = name2value["password"]
+	params.TimeoutSeconds, _ = strconv.Atoi(name2value["timeout"])
+
+	if conn.LogLevel >= LogDebug {
+		buf := bytes.NewBuffer(nil)
+
+		for name, value := range name2value {
+			buf.WriteString(fmt.Sprintf("%s = '%s'\n", name, value))
+		}
+
+		conn.log(LogDebug, "Parsed connection parameter settings:\n", buf)
+	}
+
+	return params
+}
+
 // Connect establishes a database connection.
-func Connect(parameters *ConnParams) (conn *Conn, err os.Error) {
+//
+// Parameter settings in connStr have to be separated by a single space and are
+// expected in keyword = value form. Spaces around equal signs are optional.
+// Use single quotes for empty values or values containing spaces.
+//
+// Currently these keywords are supported:
+//
+// host 	= Name of the host to connect to (default: localhost)
+//
+// port 	= Integer port number the server listens on (default: 5432)
+//
+// dbname 	= Database name (default: same as user)
+//
+// user 	= User to connect as
+//
+// password = Password for password based authentication methods
+//
+// timeout	= Timeout in seconds, 0 or not specified disables timeout (default: 15)
+func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {
 	newConn := new(Conn)
 
-	newConn.LogLevel = DefaultLogLevel
+	newConn.LogLevel = logLevel
 	newConn.state = disconnectedState{}
 
 	if newConn.LogLevel >= LogDebug {
@@ -153,8 +249,7 @@ func Connect(parameters *ConnParams) (conn *Conn, err os.Error) {
 		}
 	}()
 
-	params := new(ConnParams)
-	*params = *parameters
+	params := newConn.parseParams(connStr)
 	newConn.params = params
 
 	if params.Host == "" {
@@ -162,6 +257,9 @@ func Connect(parameters *ConnParams) (conn *Conn, err os.Error) {
 	}
 	if params.Port == 0 {
 		params.Port = 5432
+	}
+	if params.Database == "" {
+		params.Database = params.User
 	}
 
 	tcpConn, err := net.Dial("tcp", "", fmt.Sprintf("%s:%d", params.Host, params.Port))

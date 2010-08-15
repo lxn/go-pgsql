@@ -13,16 +13,8 @@ import (
 	"time"
 )
 
-func validParams() *ConnParams {
-	return &ConnParams{
-		Database: "testdatabase",
-		User:     "testuser",
-		Password: "testpassword",
-	}
-}
-
 func withConn(t *testing.T, f func(conn *Conn)) {
-	conn, err := Connect(validParams())
+	conn, err := Connect("dbname=testdatabase user=testuser password=testpassword", LogNothing)
 	if err != nil {
 		t.Error("withConn: Connect:", err)
 		return
@@ -97,22 +89,12 @@ func param(name string, typ Type, value interface{}) *Parameter {
 	return p
 }
 
-func Test_Connect_NilParams_ExpectErrNotNil(t *testing.T) {
-	_, err := Connect(nil)
-	if err == nil {
-		t.Fail()
-	}
-}
+func Test_Connect_UglyButValidParamsStyle_ExpectErrNil(t *testing.T) {
+	conn, err := Connect(
+		`dbname=testdatabase
 
-func Test_Connect_NilParams_ExpectConnNil(t *testing.T) {
-	conn, _ := Connect(nil)
-	if conn != nil {
-		t.Fail()
-	}
-}
-
-func Test_Connect_ValidParams_ExpectErrNil(t *testing.T) {
-	conn, err := Connect(validParams())
+		user  ='testuser'    password      =  'testpassword'  `,
+		LogNothing)
 	if err != nil {
 		t.Fail()
 	}
@@ -122,10 +104,7 @@ func Test_Connect_ValidParams_ExpectErrNil(t *testing.T) {
 }
 
 func Test_Connect_InvalidPassword_ExpectConnNil(t *testing.T) {
-	params := validParams()
-	params.Password = "wrongpassword"
-
-	conn, _ := Connect(params)
+	conn, _ := Connect("dbname=testdatabase user=testuser password=wrongpassword", LogNothing)
 	if conn != nil {
 		t.Fail()
 		conn.Close()
@@ -133,10 +112,7 @@ func Test_Connect_InvalidPassword_ExpectConnNil(t *testing.T) {
 }
 
 func Test_Connect_InvalidPassword_ExpectErrNotNil(t *testing.T) {
-	params := validParams()
-	params.Password = "wrongpassword"
-
-	conn, err := Connect(params)
+	conn, err := Connect("dbname=testdatabase user=testuser password=wrongpassword", LogNothing)
 	if err == nil {
 		t.Fail()
 	}

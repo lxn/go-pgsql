@@ -17,15 +17,7 @@ type item struct {
 }
 
 func main() {
-	pgsql.DefaultLogLevel = pgsql.LogError
-
-	params := &pgsql.ConnParams{
-		Database: "testdatabase",
-		User:     "testuser",
-		Password: "testpassword",
-	}
-
-	conn, err := pgsql.Connect(params)
+	conn, err := pgsql.Connect("dbname=testdatabase user=testuser password=testpassword", pgsql.LogError)
 	if err != nil {
 		os.Exit(1)
 	}

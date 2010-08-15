@@ -24,12 +24,12 @@ type Statement struct {
 }
 
 func replaceParameterNameInSubstring(s, old, new string, buf *bytes.Buffer, paramRegExp *regexp.Regexp) {
-	matchIndices := paramRegExp.FindStringIndex(s)
+	matchIndexPairs := paramRegExp.FindAllStringIndex(s, -1)
 	prevMatchEnd := 1
 
-	for i := 0; i < len(matchIndices); i += 2 {
-		matchStart := matchIndices[i]
-		matchEnd := matchIndices[i+1]
+	for _, pair := range matchIndexPairs {
+		matchStart := pair[0]
+		matchEnd := pair[1]
 
 		buf.WriteString(s[prevMatchEnd-1 : matchStart+1])
 		buf.WriteString(new)
@@ -50,12 +50,12 @@ func replaceParameterName(command, old, new string) string {
 
 	buf := bytes.NewBuffer(nil)
 
-	quoteIndices := quoteRegExp.FindStringIndex(command)
+	quoteIndexPairs := quoteRegExp.FindAllStringIndex(command, -1)
 	prevQuoteEnd := 0
 
-	for i := 0; i < len(quoteIndices); i += 2 {
-		quoteStart := quoteIndices[i]
-		quoteEnd := quoteIndices[i+1]
+	for _, pair := range quoteIndexPairs {
+		quoteStart := pair[0]
+		quoteEnd := pair[1]
 
 		replaceParameterNameInSubstring(command[prevQuoteEnd:quoteStart], old, new, buf, paramRegExp)
 		buf.WriteString(command[quoteStart:quoteEnd])
