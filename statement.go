@@ -11,7 +11,6 @@ import (
 	"regexp"
 )
 
-var nextStatementId, nextPortalId uint64
 var quoteRegExp = regexp.MustCompile("['][^']*[']")
 
 // Statement is a means to efficiently execute a parameterized SQL command multiple times.
@@ -106,11 +105,11 @@ func newStatement(conn *Conn, command string, params []*Parameter) *Statement {
 
 	stmt.conn = conn
 
-	stmt.name = fmt.Sprint("stmt", nextStatementId)
-	nextStatementId++
+	stmt.name = fmt.Sprint("stmt", conn.nextStatementId)
+	conn.nextStatementId++
 
-	stmt.portalName = fmt.Sprint("prtl", nextPortalId)
-	nextPortalId++
+	stmt.portalName = fmt.Sprint("prtl", conn.nextPortalId)
+	conn.nextPortalId++
 
 	stmt.command = command
 	stmt.actualCommand = adjustCommand(command, params)

@@ -72,6 +72,8 @@ type Conn struct {
 	backendSecretKey                int32
 	onErrorDontRequireReadyForQuery bool
 	runtimeParameters               map[string]string
+	nextStatementId                 uint64
+	nextPortalId                    uint64
 }
 
 // Connect establishes a database connection.
