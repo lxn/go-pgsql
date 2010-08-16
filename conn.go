@@ -138,8 +138,8 @@ type Conn struct {
 	transactionStatus               TransactionStatus
 }
 
-func parseParamsInNotQuotedSubstring(s string, name2value map[string]string) (rightmostKeyword string) {
-	var tokens vector.StringVector
+func parseParamsInUnquotedSubstring(s string, name2value map[string]string) (lastKeyword string) {
+	var words vector.StringVector
 
 	for {
 		index := strings.IndexAny(s, "= \n\r\t")
@@ -147,22 +147,22 @@ func parseParamsInNotQuotedSubstring(s string, name2value map[string]string) (ri
 			break
 		}
 
-		token := s[0:index]
-		if token != "" {
-			tokens.Push(token)
+		word := s[0:index]
+		if word != "" {
+			words.Push(word)
 		}
 		s = s[index+1:]
 	}
 	if len(s) > 0 {
-		tokens.Push(s)
+		words.Push(s)
 	}
 
-	for i := 0; i < len(tokens)-1; i += 2 {
-		name2value[tokens[i]] = tokens[i+1]
+	for i := 0; i < len(words)-1; i += 2 {
+		name2value[words[i]] = words[i+1]
 	}
 
-	if len(tokens) > 0 && len(tokens)%2 == 1 {
-		rightmostKeyword = tokens[len(tokens)-1]
+	if len(words) > 0 && len(words)%2 == 1 {
+		lastKeyword = words[len(words)-1]
 	}
 
 	return
@@ -178,18 +178,18 @@ func (conn *Conn) parseParams(s string) *connParams {
 		quoteStart := pair[0]
 		quoteEnd := pair[1]
 
-		rightmostKeyword := parseParamsInNotQuotedSubstring(s[prevQuoteEnd:quoteStart], name2value)
-		if rightmostKeyword != "" {
-			name2value[rightmostKeyword] = s[quoteStart+1 : quoteEnd-1]
+		lastKeyword := parseParamsInUnquotedSubstring(s[prevQuoteEnd:quoteStart], name2value)
+		if lastKeyword != "" {
+			name2value[lastKeyword] = s[quoteStart+1 : quoteEnd-1]
 		}
 
 		prevQuoteEnd = quoteEnd
 	}
 
 	if prevQuoteEnd > 0 {
-		parseParamsInNotQuotedSubstring(s[prevQuoteEnd:], name2value)
+		parseParamsInUnquotedSubstring(s[prevQuoteEnd:], name2value)
 	} else {
-		parseParamsInNotQuotedSubstring(s, name2value)
+		parseParamsInUnquotedSubstring(s, name2value)
 	}
 
 	params := new(connParams)
