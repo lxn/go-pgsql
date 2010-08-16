@@ -186,7 +186,7 @@ func (res *ResultSet) Close() (err os.Error) {
 	}()
 
 	if res.stmt != nil {
-		defer res.conn.state.closePortal(res.stmt)
+		defer res.conn.writeClose('P', res.stmt.portalName)
 	}
 
 	// TODO: Instead of eating all records, try to cancel the query processing.

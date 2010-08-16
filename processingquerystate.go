@@ -10,16 +10,6 @@ type processingQueryState struct {
 	abstractState
 }
 
-func (processingQueryState) closePortal(stmt *Statement) {
-	conn := stmt.conn
-
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("processingQueryState.closePortal"))
-	}
-
-	conn.writeClose('P', stmt.portalName)
-}
-
 func (processingQueryState) code() ConnStatus {
 	return StatusProcessingQuery
 }

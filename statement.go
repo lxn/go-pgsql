@@ -179,7 +179,7 @@ func (stmt *Statement) Close() (err os.Error) {
 		}
 	}()
 
-	stmt.conn.state.closeStatement(stmt)
+	stmt.conn.writeClose('S', stmt.name)
 
 	stmt.isClosed = true
 	return

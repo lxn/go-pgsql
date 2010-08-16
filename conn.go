@@ -232,7 +232,7 @@ func (conn *Conn) parseParams(s string) *connParams {
 //
 // password = Password for password based authentication methods
 //
-// timeout	= Timeout in seconds, 0 or not specified disables timeout (default: 15)
+// timeout	= Timeout in seconds, 0 or not specified disables timeout (default: 0)
 func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {
 	newConn := new(Conn)
 
@@ -311,7 +311,14 @@ func (conn *Conn) Close() (err os.Error) {
 		return
 	}
 
-	conn.state.disconnect(conn)
+	conn.writeTerminate()
+
+	err = conn.tcpConn.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	conn.state = disconnectedState{}
 
 	return
 }

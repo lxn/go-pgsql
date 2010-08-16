@@ -10,33 +10,8 @@ type readyState struct {
 	abstractState
 }
 
-func (readyState) closeStatement(stmt *Statement) {
-	conn := stmt.conn
-
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("readyState.closeStatement"))
-	}
-
-	conn.writeClose('S', stmt.name)
-}
-
 func (readyState) code() ConnStatus {
 	return StatusReady
-}
-
-func (readyState) disconnect(conn *Conn) {
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("readyState.disconnect"))
-	}
-
-	conn.writeTerminate()
-
-	err := conn.tcpConn.Close()
-	if err != nil {
-		panic(err)
-	}
-
-	conn.state = disconnectedState{}
 }
 
 func (readyState) execute(stmt *Statement, res *ResultSet) {
