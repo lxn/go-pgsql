@@ -449,7 +449,7 @@ func Test_Conn_Scan_Time(t *testing.T) {
 
 	for _, test := range tests {
 		withConn(t, func(conn *Conn) {
-			_, err := conn.Execute("SET TimeZone = +02; SET DateStyle = ISO")
+			_, err := conn.Execute("SET TimeZone = 02; SET DateStyle = ISO")
 			if err != nil {
 				t.Error("failed to set time zone or date style:", err)
 				return
@@ -529,7 +529,7 @@ func Test_Insert_Time(t *testing.T) {
 				conn.Execute("DROP TABLE _gopgsql_test_time;")
 			}()
 
-			_, err = conn.Execute("SET TimeZone = +02; SET DateStyle = ISO")
+			_, err = conn.Execute("SET TimeZone = 02; SET DateStyle = ISO")
 			if err != nil {
 				t.Error("failed to set time zone or date style:", err)
 				return

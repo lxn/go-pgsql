@@ -319,7 +319,7 @@ func (conn *Conn) Close() (err os.Error) {
 // Execute sends a SQL command to the server and returns the number
 // of rows affected. If the results of a query are needed, use the
 // Query method instead.
-func (conn *Conn) Execute(command string) (rowsAffected int64, err os.Error) {
+func (conn *Conn) Execute(command string, params ...*Parameter) (rowsAffected int64, err os.Error) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.Execute"))
 	}
@@ -330,7 +330,7 @@ func (conn *Conn) Execute(command string) (rowsAffected int64, err os.Error) {
 		}
 	}()
 
-	res, err := conn.Query(command)
+	res, err := conn.Query(command, params)
 	if err != nil {
 		return
 	}
@@ -376,7 +376,7 @@ func (conn *Conn) Prepare(command string, params ...*Parameter) (stmt *Statement
 // ResultSet for row-by-row retrieval of the results.
 // The returned ResultSet must be closed before sending another
 // query or command to the server over the same connection.
-func (conn *Conn) Query(command string) (res *ResultSet, err os.Error) {
+func (conn *Conn) Query(command string, params ...*Parameter) (res *ResultSet, err os.Error) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.Query"))
 	}
@@ -387,11 +387,22 @@ func (conn *Conn) Query(command string) (res *ResultSet, err os.Error) {
 		}
 	}()
 
-	r := newResultSet(conn)
+	var stmt *Statement
+	if len(params) == 0 {
+		r := newResultSet(conn)
 
-	conn.state.query(conn, r, command)
+		conn.state.query(conn, r, command)
 
-	res = r
+		res = r
+	} else {
+		stmt, err = conn.Prepare(command, params)
+		if err != nil {
+			return
+		}
+		defer stmt.Close()
+
+		res, err = stmt.Query()
+	}
 
 	return
 }
