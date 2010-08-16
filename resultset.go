@@ -546,23 +546,23 @@ func (res *ResultSet) TimeSeconds(ord int) (value int64, isNull bool, err os.Err
 		var format string
 		switch res.fields[ord].typeOID {
 		case _DATEOID:
-			format = "2006-01-02"
+			format = res.conn.dateFormat
 
 		case _TIMEOID, _TIMETZOID:
-			format = "15:04:05"
+			format = res.conn.timeFormat
 
 		case _TIMESTAMPOID, _TIMESTAMPTZOID:
-			format = "2006-01-02 15:04:05"
+			format = res.conn.timestampFormat
 		}
 
-		var tzFormatExtra, tzValueExtra string
+		var tzFormat, tzValueExtra string
 		switch res.fields[ord].typeOID {
 		case _TIMETZOID, _TIMESTAMPTZOID:
-			tzFormatExtra = "-0700"
-			tzValueExtra = "00"
+			tzFormat = res.conn.timezoneFormat
+			tzValueExtra = res.conn.timezoneValueExtra
 		}
 
-		t, err = time.Parse(format+tzFormatExtra, string(val)+tzValueExtra)
+		t, err = time.Parse(format+tzFormat, string(val)+tzValueExtra)
 		if err != nil {
 			panic(err)
 		}

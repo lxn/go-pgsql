@@ -136,6 +136,11 @@ type Conn struct {
 	nextPortalId                    uint64
 	nextSavepointId                 uint64
 	transactionStatus               TransactionStatus
+	dateFormat                      string
+	timeFormat                      string
+	timestampFormat                 string
+	timezoneFormat                  string
+	timezoneValueExtra              string
 }
 
 func parseParamsInUnquotedSubstring(s string, name2value map[string]string) (lastKeyword string) {
@@ -560,4 +565,62 @@ func (conn *Conn) WithSavepoint(isolation IsolationLevel, f func() os.Error) (er
 	}
 
 	return
+}
+
+func (conn *Conn) updateTimeFormats() {
+	style := conn.runtimeParameters["DateStyle"]
+
+	switch style {
+	case "ISO", "ISO, DMY", "ISO, MDY":
+		conn.dateFormat = "2006-01-02"
+		conn.timeFormat = "15:04:05"
+		conn.timestampFormat = "2006-01-02 15:04:05"
+		conn.timezoneFormat = "-0700"
+		conn.timezoneValueExtra = "00"
+
+	case "SQL", "SQL, MDY":
+		conn.dateFormat = "01/02/2006"
+		conn.timeFormat = "15:04:05"
+		conn.timestampFormat = "01/02/2006 15:04:05"
+		conn.timezoneFormat = " MST"
+		conn.timezoneValueExtra = ""
+
+	case "SQL, DMY":
+		conn.dateFormat = "02/01/2006"
+		conn.timeFormat = "15:04:05"
+		conn.timestampFormat = "02/01/2006 15:04:05"
+		conn.timezoneFormat = " MST"
+		conn.timezoneValueExtra = ""
+
+	case "Postgres", "Postgres, DMY":
+		conn.dateFormat = "02-01-2006"
+		conn.timeFormat = "15:04:05"
+		conn.timestampFormat = "Mon 02 Jan 15:04:05 2006"
+		conn.timezoneFormat = " MST"
+		conn.timezoneValueExtra = ""
+
+	case "Postgres, MDY":
+		conn.dateFormat = "01-02-2006"
+		conn.timeFormat = "15:04:05"
+		conn.timestampFormat = "Mon Jan 02 15:04:05 2006"
+		conn.timezoneFormat = " MST"
+		conn.timezoneValueExtra = ""
+
+	case "German", "German, DMY", "German, MDY":
+		conn.dateFormat = "02.01.2006"
+		conn.timeFormat = "15:04:05"
+		conn.timestampFormat = "02.01.2006 15:04:05"
+		conn.timezoneFormat = " MST"
+		conn.timezoneValueExtra = ""
+
+	default:
+		if conn.LogLevel >= LogWarning {
+			conn.log(LogWarning, "Unknown DateStyle: "+style)
+		}
+		conn.dateFormat = ""
+		conn.timeFormat = ""
+		conn.timestampFormat = ""
+		conn.timezoneFormat = ""
+		conn.timezoneValueExtra = ""
+	}
 }

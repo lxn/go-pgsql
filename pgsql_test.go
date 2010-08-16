@@ -384,6 +384,74 @@ func Test_Conn_Scan(t *testing.T) {
 	})
 }
 
+type dateStyleTest struct {
+	typ, format, want string
+}
+
+func Test_DateStyle(t *testing.T) {
+	dateStyles := []string{
+		"ISO", "ISO, DMY", "ISO, MDY",
+		"SQL", "SQL, DMY", "SQL, MDY",
+		"Postgres", "Postgres, DMY", "Postgres, MDY",
+		"German", "German, DMY", "German, MDY",
+	}
+
+	tests := []*dateStyleTest{
+		&dateStyleTest{
+			typ:    "DATE",
+			format: dateFormat,
+			want:   "2010-08-16",
+		},
+		&dateStyleTest{
+			typ:    "TIME",
+			format: timeFormat,
+			want:   "01:23:45",
+		},
+		&dateStyleTest{
+			typ:    "TIMESTAMP",
+			format: timestampFormat,
+			want:   "2010-08-16 01:23:45",
+		},
+		&dateStyleTest{
+			typ:    "TIMESTAMP WITH TIME ZONE",
+			format: timestampFormat,
+			want:   "2010-08-16 01:23:45",
+		},
+	}
+
+	for _, style := range dateStyles {
+		withConn(t, func(conn *Conn) {
+			_, err := conn.Execute("SET TimeZone = UTC;")
+			if err != nil {
+				t.Errorf("failed to set time zone = UTC: %s", err)
+				return
+			}
+
+			_, err = conn.Execute(fmt.Sprintf("SET DateStyle = %s;", style))
+			if err != nil {
+				t.Errorf("failed to set DateStyle = %s: %s", style, err)
+				return
+			}
+
+			var ts *time.Time
+
+			for _, test := range tests {
+				_, err = conn.Scan(fmt.Sprintf("SELECT %s '%s';", test.typ, test.want), &ts)
+				if err != nil {
+					t.Errorf("failed to scan with DateStyle = %s: %s", style, err)
+					return
+				}
+
+				have := ts.Format(test.format)
+
+				if have != test.want {
+					t.Errorf("DateStyle = %s, typ = %s: want: '%s', but have: '%s'", style, test.typ, test.want, have)
+				}
+			}
+		})
+	}
+}
+
 type timeTest struct {
 	command, timeString string
 	seconds             int64

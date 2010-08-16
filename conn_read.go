@@ -302,6 +302,10 @@ func (conn *Conn) readParameterStatus() {
 	}
 
 	conn.runtimeParameters[name] = value
+
+	if name == "DateStyle" {
+		conn.updateTimeFormats()
+	}
 }
 
 func (conn *Conn) readParseComplete() {
