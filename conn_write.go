@@ -205,7 +205,7 @@ func (conn *Conn) writeBind(stmt *Statement) {
 	}
 
 	conn.writeInt16(1)
-	conn.writeInt16(binaryFormat)
+	conn.writeInt16(int16(textFormat))
 
 	conn.writeFlush()
 }
