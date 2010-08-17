@@ -12,15 +12,33 @@ import (
 
 // Parameter is used to set the value of a parameter in a Statement.
 type Parameter struct {
-	name  string
-	stmt  *Statement
-	typ   Type
-	value interface{}
+	name           string
+	stmt           *Statement
+	typ            Type
+	customTypeName string
+	value          interface{}
 }
 
-// NewParameter returns a new Parameter with the specified properties.
+// NewParameter returns a new Parameter with the specified name and type.
 func NewParameter(name string, typ Type) *Parameter {
 	return &Parameter{name: name, typ: typ}
+}
+
+// NewCustomTypeParameter returns a new Parameter with the specified name and
+// custom data type.
+//
+// The value of customTypeName will be used to insert a type cast into the
+// command text for each occurrence of the parameter.
+//
+// This constructor can be used for enum type parameters. In that case the value
+// provided to SetValue is expected to be a string.
+func NewCustomTypeParameter(name, customTypeName string) *Parameter {
+	return &Parameter{name: name, customTypeName: customTypeName}
+}
+
+// CustomTypeName returns the custom type name of the Parameter.
+func (p *Parameter) CustomTypeName() string {
+	return p.customTypeName
 }
 
 // Name returns the name of the Parameter.
@@ -125,6 +143,9 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 			p.panicInvalidValue(v)
 		}
 		p.value = val
+
+	case Custom:
+		p.value = v
 
 	case Date, Time, TimeTZ, Timestamp, TimestampTZ:
 		switch val := v.(type) {

@@ -76,7 +76,11 @@ func replaceParameterName(command, old, new string) string {
 
 func adjustCommand(command string, params []*Parameter) string {
 	for i, p := range params {
-		command = replaceParameterName(command, p.name, fmt.Sprintf("$%d", i+1))
+		var cast string
+		if p.customTypeName != "" {
+			cast = fmt.Sprintf("::%s", p.customTypeName)
+		}
+		command = replaceParameterName(command, p.name, fmt.Sprintf("$%d%s", i+1, cast))
 	}
 
 	return command

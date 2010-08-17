@@ -85,6 +85,7 @@ const (
 type Type int32
 
 const (
+	Custom      Type = 0
 	Boolean     Type = _BOOLOID
 	Char        Type = _CHAROID
 	Date        Type = _DATEOID
@@ -108,6 +109,9 @@ func (t Type) String() string {
 
 	case Char:
 		return "Char"
+
+	case Custom:
+		return "Custom"
 
 	case Date:
 		return "Date"
