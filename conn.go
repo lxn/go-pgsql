@@ -139,8 +139,8 @@ type Conn struct {
 	dateFormat                      string
 	timeFormat                      string
 	timestampFormat                 string
-	timezoneFormat                  string
-	timezoneValueExtra              string
+	timestampTimezoneFormat         string
+	timestampTimezoneValueExtra     string
 }
 
 func parseParamsInUnquotedSubstring(s string, name2value map[string]string) (lastKeyword string) {
@@ -575,43 +575,43 @@ func (conn *Conn) updateTimeFormats() {
 		conn.dateFormat = "2006-01-02"
 		conn.timeFormat = "15:04:05"
 		conn.timestampFormat = "2006-01-02 15:04:05"
-		conn.timezoneFormat = "-0700"
-		conn.timezoneValueExtra = "00"
+		conn.timestampTimezoneFormat = "-0700"
+		conn.timestampTimezoneValueExtra = "00"
 
 	case "SQL", "SQL, MDY":
 		conn.dateFormat = "01/02/2006"
 		conn.timeFormat = "15:04:05"
 		conn.timestampFormat = "01/02/2006 15:04:05"
-		conn.timezoneFormat = " MST"
-		conn.timezoneValueExtra = ""
+		conn.timestampTimezoneFormat = " MST"
+		conn.timestampTimezoneValueExtra = ""
 
 	case "SQL, DMY":
 		conn.dateFormat = "02/01/2006"
 		conn.timeFormat = "15:04:05"
 		conn.timestampFormat = "02/01/2006 15:04:05"
-		conn.timezoneFormat = " MST"
-		conn.timezoneValueExtra = ""
+		conn.timestampTimezoneFormat = " MST"
+		conn.timestampTimezoneValueExtra = ""
 
 	case "Postgres", "Postgres, DMY":
 		conn.dateFormat = "02-01-2006"
 		conn.timeFormat = "15:04:05"
 		conn.timestampFormat = "Mon 02 Jan 15:04:05 2006"
-		conn.timezoneFormat = " MST"
-		conn.timezoneValueExtra = ""
+		conn.timestampTimezoneFormat = " MST"
+		conn.timestampTimezoneValueExtra = ""
 
 	case "Postgres, MDY":
 		conn.dateFormat = "01-02-2006"
 		conn.timeFormat = "15:04:05"
 		conn.timestampFormat = "Mon Jan 02 15:04:05 2006"
-		conn.timezoneFormat = " MST"
-		conn.timezoneValueExtra = ""
+		conn.timestampTimezoneFormat = " MST"
+		conn.timestampTimezoneValueExtra = ""
 
 	case "German", "German, DMY", "German, MDY":
 		conn.dateFormat = "02.01.2006"
 		conn.timeFormat = "15:04:05"
 		conn.timestampFormat = "02.01.2006 15:04:05"
-		conn.timezoneFormat = " MST"
-		conn.timezoneValueExtra = ""
+		conn.timestampTimezoneFormat = " MST"
+		conn.timestampTimezoneValueExtra = ""
 
 	default:
 		if conn.LogLevel >= LogWarning {
@@ -620,7 +620,7 @@ func (conn *Conn) updateTimeFormats() {
 		conn.dateFormat = ""
 		conn.timeFormat = ""
 		conn.timestampFormat = ""
-		conn.timezoneFormat = ""
-		conn.timezoneValueExtra = ""
+		conn.timestampTimezoneFormat = ""
+		conn.timestampTimezoneValueExtra = ""
 	}
 }

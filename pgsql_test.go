@@ -408,6 +408,11 @@ func Test_DateStyle(t *testing.T) {
 			want:   "01:23:45",
 		},
 		&dateStyleTest{
+			typ:    "TIME WITH TIME ZONE",
+			format: timeFormat,
+			want:   "01:23:45",
+		},
+		&dateStyleTest{
 			typ:    "TIMESTAMP",
 			format: timestampFormat,
 			want:   "2010-08-16 01:23:45",
