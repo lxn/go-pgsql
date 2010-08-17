@@ -16,7 +16,7 @@ type fieldFormat int16
 
 const (
 	textFormat   fieldFormat = 0
-	binaryFormat = 1
+	binaryFormat fieldFormat = 1
 )
 
 type field struct {
