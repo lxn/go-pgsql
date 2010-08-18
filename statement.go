@@ -232,6 +232,25 @@ func (stmt *Statement) Query() (res *ResultSet, err os.Error) {
 		}
 	}()
 
+	if conn.LogLevel >= LogCommand {
+		buf := bytes.NewBuffer(nil)
+
+		buf.WriteString("\n=================================================\n")
+
+		buf.WriteString("ActualCommand:\n")
+		buf.WriteString(stmt.actualCommand)
+		buf.WriteString("\n-------------------------------------------------\n")
+		buf.WriteString("Parameters:\n")
+
+		for i, p := range stmt.params {
+			buf.WriteString(fmt.Sprintf("$%d (%s) = '%v'\n", i+1, p.name, p.value))
+		}
+
+		buf.WriteString("=================================================\n")
+
+		conn.log(LogCommand, buf.String())
+	}
+
 	r := newResultSet(conn)
 
 	conn.state.execute(stmt, r)
