@@ -9,6 +9,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -566,7 +567,26 @@ func (res *ResultSet) TimeSeconds(ord int) (value int64, isNull bool, err os.Err
 			tzValueExtra = res.conn.timestampTimezoneValueExtra
 		}
 
-		t, err = time.Parse(format+tzFormat, string(val)+tzValueExtra)
+		s := string(val)
+
+		if res.fields[ord].typeOID != _DATEOID {
+			// The resolution of time.Time is seconds, so we will have to drop
+			// fractions, if present.
+			lastSemicolon := strings.LastIndex(s, ":")
+			lastDot := strings.LastIndex(s, ".")
+			if lastSemicolon < lastDot {
+				// There are fractions
+				plusOrMinus := strings.IndexAny(s[lastDot:], "+-")
+				if -1 < plusOrMinus {
+					// There is a time zone
+					s = s[0:lastDot] + s[lastDot+plusOrMinus:]
+				} else {
+					s = s[0:lastDot]
+				}
+			}
+		}
+
+		t, err = time.Parse(format+tzFormat, s+tzValueExtra)
 		if err != nil {
 			panic(err)
 		}

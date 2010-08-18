@@ -39,3 +39,9 @@ go-pgsql is currently missing support for some features, including:
 
 go-pgsql is (at least for now) not thread-safe, so for every goroutine
 that must talk to the same database, a separate Conn is required.
+
+Time/Timestamp resolution
+=========================
+
+Because the resolution of time.Time is seconds, fractions of seconds are
+silently dropped by *ResultSet.Time and *ResultSet.TimeSeconds.
