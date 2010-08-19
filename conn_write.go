@@ -264,7 +264,15 @@ func (conn *Conn) writeParse(stmt *Statement) {
 
 	conn.writeInt16(int16(len(stmt.params)))
 	for _, param := range stmt.params {
-		conn.writeInt32(int32(param.typ))
+		typ := param.typ
+		if typ == Char {
+			// FIXME: There seems to be something wrong with CHAR parameters.
+			// Had a query that correctly returned rows in psql, but didn't
+			// via go-pgsql statement. Changed param type from Char to Varchar
+			// and it worked. The corresponding field in the table was CHAR(32).
+			typ = Varchar
+		}
+		conn.writeInt32(int32(typ))
 	}
 
 	conn.writeFlush()
