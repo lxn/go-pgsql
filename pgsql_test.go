@@ -347,18 +347,19 @@ func Test_DoStatementResultSetTests(t *testing.T) {
 }
 
 type item struct {
-	id       int
-	name     string
-	price    float
-	packUnit uint
-	onSale   bool
+	id        int
+	name      string
+	price     float
+	packUnit  uint
+	onSale    bool
+	something interface{}
 }
 
 func Test_Conn_Scan(t *testing.T) {
 	withConn(t, func(conn *Conn) {
 		var x item
-		command := "SELECT 123, 'abc', 14.99, 4, true;"
-		fetched, err := conn.Scan(command, &x.id, &x.name, &x.price, &x.packUnit, &x.onSale)
+		command := "SELECT 123, 'abc', 14.99, 4, true, '2010-08-20'::DATE;"
+		fetched, err := conn.Scan(command, &x.id, &x.name, &x.price, &x.packUnit, &x.onSale, &x.something)
 		if err != nil {
 			t.Error(err)
 			return
@@ -380,6 +381,15 @@ func Test_Conn_Scan(t *testing.T) {
 		}
 		if !x.onSale {
 			t.Error("onSale - have: true, but want: false")
+		}
+		seconds, ok := x.something.(int64)
+		if !ok {
+			t.Error("something should have type int64")
+		} else {
+			dateStr := time.SecondsToUTC(seconds).Format(dateFormat)
+			if dateStr != "2010-08-20" {
+				t.Errorf("something - have: '%s', but want: '2010-08-20'", dateStr)
+			}
 		}
 	})
 }

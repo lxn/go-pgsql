@@ -668,6 +668,87 @@ func (res *ResultSet) Uint64(ord int) (value uint64, isNull bool, err os.Error) 
 	return
 }
 
+// Any returns the value of the field with the specified ordinal as interface{}.
+//
+// Types are mapped as follows:
+//
+// PostgreSQL	Go
+//
+// Bigint		int64
+//
+// Boolean		bool
+//
+// Char			string
+//
+// Date			int64
+//
+// Double		float64
+//
+// Integer		int
+//
+// Real			float
+//
+// Smallint		int16
+//
+// Text			string
+//
+// Time			int64
+//
+// TimeTZ		int64
+//
+// Timestamp	int64
+//
+// TimestampTZ	int64
+//
+// Varchar		string
+func (res *ResultSet) Any(ord int) (value interface{}, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Any"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = res.conn.logAndConvertPanic(x)
+		}
+	}()
+
+	if res.values[ord] == nil {
+		isNull = true
+		return
+	}
+
+	switch res.fields[ord].typeOID {
+	case _BOOLOID:
+		return res.Bool(ord)
+
+	case _CHAROID, _VARCHAROID, _TEXTOID:
+		return res.String(ord)
+
+	case _DATEOID, _TIMEOID, _TIMETZOID, _TIMESTAMPOID, _TIMESTAMPTZOID:
+		return res.TimeSeconds(ord)
+
+	case _FLOAT4OID:
+		return res.Float(ord)
+
+	case _FLOAT8OID:
+		return res.Float64(ord)
+
+	case _INT2OID:
+		return res.Int16(ord)
+
+	case _INT4OID:
+		return res.Int(ord)
+
+	case _INT8OID:
+		return res.Int64(ord)
+
+	default:
+		panic("unexpected field data type")
+	}
+
+	return
+}
+
 // Scan scans the fields of the current row in the ResultSet, trying
 // to store field values into the specified arguments. The arguments
 // must be of pointer types.
@@ -717,6 +798,9 @@ func (res *ResultSet) Scan(args ...interface{}) (err os.Error) {
 			default:
 				*a, _, err = res.Int64(i)
 			}
+
+		case *interface{}:
+			*a, _, err = res.Any(i)
 
 		case *string:
 			*a, _, err = res.String(i)
