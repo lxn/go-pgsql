@@ -12,7 +12,7 @@ Installing go-pgsql
 1. Make sure you have a working Go installation, see the installation guide at
    http://golang.org/doc/install.html
 2. git clone http://github.com/lxn/go-pgsql.git
-3. cd go-pgsql && make install
+3. cd go-pgsql && gomake install
 
 Alternatively you can use goinstall:
 goinstall github.com/lxn/go-pgsql
