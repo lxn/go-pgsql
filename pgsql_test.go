@@ -472,16 +472,13 @@ type timeTest struct {
 	seconds             int64
 }
 
-func newTimeTest(commandTemplate, format, value string, tz bool) *timeTest {
+func newTimeTest(commandTemplate, format, value string) *timeTest {
 	test := new(timeTest)
 
-	var tzFormatExtra, tzValueExtra string
-	if tz {
-		tzFormatExtra = "-0700"
-		tzValueExtra = "+0200"
-	}
-
-	t, _ := time.Parse(format+tzFormatExtra, value+tzValueExtra)
+	t, err := time.Parse(format, value)
+    if err != nil {
+        panic(err)
+    }
 	t = time.SecondsToUTC(t.Seconds())
 
 	if strings.Index(commandTemplate, "%s") > -1 {
@@ -506,28 +503,23 @@ func Test_Conn_Scan_Time(t *testing.T) {
 		newTimeTest(
 			"SELECT DATE '%s';",
 			dateFormat,
-			"2010-08-14",
-			false),
+			"2010-08-14"),
 		newTimeTest(
 			"SELECT TIME '%s';",
 			timeFormat,
-			"18:43:32",
-			false),
+			"18:43:32"),
 		newTimeTest(
 			"SELECT TIME WITH TIME ZONE '%s';",
-			timeFormat,
-			"18:43:32",
-			true),
+			timeFormat + "-07",
+			"18:43:32+02"),
 		newTimeTest(
 			"SELECT TIMESTAMP '%s';",
 			timestampFormat,
-			"2010-08-14 18:43:32",
-			false),
+			"2010-08-14 18:43:32"),
 		newTimeTest(
 			"SELECT TIMESTAMP WITH TIME ZONE '%s';",
-			timestampFormat,
-			"2010-08-14 18:43:32",
-			true),
+			timestampFormat + "-07",
+			"2010-08-14 18:43:32+02"),
 	}
 
 	for _, test := range tests {
@@ -567,28 +559,23 @@ func Test_Insert_Time(t *testing.T) {
 		newTimeTest(
 			"SELECT _d FROM _gopgsql_test_time;",
 			dateFormat,
-			"2010-08-14",
-			false),
+			"2010-08-14"),
 		newTimeTest(
 			"SELECT _t FROM _gopgsql_test_time;",
 			timeFormat,
-			"20:03:38",
-			false),
+			"20:03:38"),
 		newTimeTest(
 			"SELECT _ttz FROM _gopgsql_test_time;",
-			timeFormat,
-			"20:03:38",
-			true),
+			timeFormat + "-07",
+			"20:03:38+02"),
 		newTimeTest(
 			"SELECT _ts FROM _gopgsql_test_time;",
 			timestampFormat,
-			"2010-08-14 20:03:38",
-			false),
+			"2010-08-14 20:03:38"),
 		newTimeTest(
 			"SELECT _tstz FROM _gopgsql_test_time;",
-			timestampFormat,
-			"2010-08-14 20:03:38",
-			true),
+			timestampFormat + "-07",
+			"2010-08-14 20:03:38+02"),
 	}
 
 	for _, test := range tests {
@@ -619,10 +606,10 @@ func Test_Insert_Time(t *testing.T) {
 			}
 
 			_d, _ := time.Parse(dateFormat, "2010-08-14")
-			_t, _ := time.Parse(timeFormat+"", "20:03:38")
-			_ttz, _ := time.Parse(timeFormat+"", "20:03:38")
+			_t, _ := time.Parse(timeFormat, "20:03:38")
+			_ttz, _ := time.Parse(timeFormat, "20:03:38")
 			_ts, _ := time.Parse(timestampFormat, "2010-08-14 20:03:38")
-			_tstz, _ := time.Parse(timestampFormat+"", "2010-08-14 20:03:38")
+			_tstz, _ := time.Parse(timestampFormat, "2010-08-14 20:03:38")
 
 			stmt, err := conn.Prepare(
 				`INSERT INTO _gopgsql_test_time
