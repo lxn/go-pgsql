@@ -22,8 +22,7 @@ Using go-pgsql
 
 There are some examples in the examples directory which should get you started.
 
-This is a young project so there will be bugs for sure.
-Please open an issue on the bug tracker if you encounter one of them.
+Please open an issue on the bug tracker if you encounter a bug.
 
 Missing Features
 ================
