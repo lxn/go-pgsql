@@ -138,6 +138,20 @@ func Test_DoSimpleQueryResultSetTests(t *testing.T) {
 			return err == nil, true, "FetchNext_ErrNil"
 		},
 
+		// Field info tests
+		func(res *ResultSet) (have, want interface{}, name string) {
+			fieldCount := res.FieldCount()
+			return fieldCount, 5, "field count"
+		},
+		func(res *ResultSet) (have, want interface{}, name string) {
+			fieldName, _ := res.Name(1)
+			return fieldName, "_two", "field #1 name"
+		},
+		func(res *ResultSet) (have, want interface{}, name string) {
+			typ, _ := res.Type(2)
+			return typ, Boolean, "field #2 type"
+		},
+
 		// Get value tests
 		func(res *ResultSet) (have, want interface{}, name string) {
 			res.FetchNext()
@@ -476,9 +490,9 @@ func newTimeTest(commandTemplate, format, value string) *timeTest {
 	test := new(timeTest)
 
 	t, err := time.Parse(format, value)
-    if err != nil {
-        panic(err)
-    }
+	if err != nil {
+		panic(err)
+	}
 	t = time.SecondsToUTC(t.Seconds())
 
 	if strings.Index(commandTemplate, "%s") > -1 {
@@ -510,7 +524,7 @@ func Test_Conn_Scan_Time(t *testing.T) {
 			"18:43:32"),
 		newTimeTest(
 			"SELECT TIME WITH TIME ZONE '%s';",
-			timeFormat + "-07",
+			timeFormat+"-07",
 			"18:43:32+02"),
 		newTimeTest(
 			"SELECT TIMESTAMP '%s';",
@@ -518,7 +532,7 @@ func Test_Conn_Scan_Time(t *testing.T) {
 			"2010-08-14 18:43:32"),
 		newTimeTest(
 			"SELECT TIMESTAMP WITH TIME ZONE '%s';",
-			timestampFormat + "-07",
+			timestampFormat+"-07",
 			"2010-08-14 18:43:32+02"),
 	}
 
@@ -566,7 +580,7 @@ func Test_Insert_Time(t *testing.T) {
 			"20:03:38"),
 		newTimeTest(
 			"SELECT _ttz FROM _gopgsql_test_time;",
-			timeFormat + "-07",
+			timeFormat+"-07",
 			"20:03:38+02"),
 		newTimeTest(
 			"SELECT _ts FROM _gopgsql_test_time;",
@@ -574,7 +588,7 @@ func Test_Insert_Time(t *testing.T) {
 			"2010-08-14 20:03:38"),
 		newTimeTest(
 			"SELECT _tstz FROM _gopgsql_test_time;",
-			timestampFormat + "-07",
+			timestampFormat+"-07",
 			"2010-08-14 20:03:38+02"),
 	}
 

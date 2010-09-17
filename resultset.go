@@ -224,6 +224,52 @@ func (res *ResultSet) IsNull(ord int) (isNull bool, err os.Error) {
 	return
 }
 
+// FieldCount returns the number of fields in the current result of the ResultSet.
+func (res *ResultSet) FieldCount() int {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.FieldCount"))
+	}
+
+	return len(res.fields)
+}
+
+// Name returns the name of the field with the specified ordinal.
+func (res *ResultSet) Name(ord int) (name string, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Name"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = res.conn.logAndConvertPanic(x)
+		}
+	}()
+
+	return res.fields[ord].name, nil
+}
+
+// Type returns the PostgreSQL type of the field with the specified ordinal.
+func (res *ResultSet) Type(ord int) (typ Type, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Type"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = res.conn.logAndConvertPanic(x)
+		}
+	}()
+
+	switch typ := res.fields[ord].typeOID; typ {
+	case _BOOLOID, _CHAROID, _DATEOID, _FLOAT4OID, _FLOAT8OID, _INT2OID,
+		_INT4OID, _INT8OID, _TEXTOID, _TIMEOID, _TIMETZOID, _TIMESTAMPOID,
+		_TIMESTAMPTZOID, _VARCHAROID:
+		return Type(typ), nil
+	}
+	
+	return Custom, nil
+}
+
 // Ordinal returns the 0-based ordinal position of the field with the
 // specified name, or -1 if the ResultSet has no field with such a name.
 func (res *ResultSet) Ordinal(name string) int {
