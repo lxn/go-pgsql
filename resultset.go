@@ -266,7 +266,7 @@ func (res *ResultSet) Type(ord int) (typ Type, err os.Error) {
 		_TIMESTAMPTZOID, _VARCHAROID:
 		return Type(typ), nil
 	}
-	
+
 	return Custom, nil
 }
 
