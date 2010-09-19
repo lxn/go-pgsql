@@ -337,9 +337,14 @@ func (res *ResultSet) Float32(ord int) (value float32, isNull bool, err os.Error
 
 	switch res.fields[ord].format {
 	case textFormat:
-		value, err = strconv.Atof32(string(val))
-		if err != nil {
-			panic(err)
+		// strconv.Atof32 does not handle NaN
+		if string(val) == "NaN" {
+			value = float32(math.NaN())
+		} else {
+			value, err = strconv.Atof32(string(val))
+			if err != nil {
+				panic(err)
+			}
 		}
 
 	case binaryFormat:
@@ -370,9 +375,14 @@ func (res *ResultSet) Float64(ord int) (value float64, isNull bool, err os.Error
 
 	switch res.fields[ord].format {
 	case textFormat:
-		value, err = strconv.Atof64(string(val))
-		if err != nil {
-			panic(err)
+		// strconv.Atof64 does not handle NaN
+		if string(val) == "NaN" {
+			value = math.NaN()
+		} else {
+			value, err = strconv.Atof64(string(val))
+			if err != nil {
+				panic(err)
+			}
 		}
 
 	case binaryFormat:

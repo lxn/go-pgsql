@@ -797,3 +797,20 @@ func Test_Numeric(t *testing.T) {
 		}
 	})
 }
+
+func Test_FloatNaN(t *testing.T) {
+	numParam := param("@num", Double, math.NaN())
+
+	withStatementResultSet(t, "SELECT @num;", []*Parameter{numParam}, func(res *ResultSet) {
+		var numHave float64
+
+		_, err := res.ScanNext(&numHave)
+		if err != nil {
+			t.Error("failed to scan next:", err)
+		}
+
+		if !math.IsNaN(numHave) {
+			t.Fail()
+		}
+	})
+}
