@@ -5,6 +5,7 @@
 package pgsql
 
 import (
+	"big"
 	"fmt"
 	"os"
 	"time"
@@ -205,6 +206,13 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 		default:
 			p.panicInvalidValue(v)
 		}
+
+	case Numeric:
+		val, ok := v.(*big.Rat)
+		if !ok {
+			p.panicInvalidValue(v)
+		}
+		p.value = val
 
 	case Real:
 		switch val := v.(type) {

@@ -5,6 +5,7 @@
 package pgsql
 
 import (
+	"big"
 	"fmt"
 	"math"
 	"os"
@@ -766,6 +767,33 @@ func Test_Conn_WithSavepoint(t *testing.T) {
 			if math.Fabs(haveBalance-wantBalance) > 0.000001 {
 				t.Errorf("name: %s have: %f, but want: %f", name, haveBalance, wantBalance)
 			}
+		}
+	})
+}
+
+func Test_Numeric(t *testing.T) {
+	strWant := "0." + strings.Repeat("0123456789", 100)[1:]
+	numWant, _ := big.NewRat(1, 1).SetString(strWant)
+	numParam := param("@num", Numeric, numWant)
+
+	withStatementResultSet(t, "SELECT @num;", []*Parameter{numParam}, func(res *ResultSet) {
+		// Use interface{}, so *resultSet.Any will be tested as well.
+		var numHaveInterface interface{}
+		
+		_, err := res.ScanNext(&numHaveInterface)
+		if err != nil {
+			t.Error("failed to scan next:", err)
+		}
+		
+		numHave, ok := numHaveInterface.(*big.Rat)
+		if !ok {
+			t.Errorf("unexpected type: %T", numHaveInterface)
+			return
+		}
+
+		strHave := numHave.FloatString(999)
+		if strHave != strWant {
+			t.Errorf("have: %s, but want: %s", strHave, strWant)
 		}
 	})
 }

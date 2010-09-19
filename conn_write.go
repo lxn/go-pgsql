@@ -5,10 +5,12 @@
 package pgsql
 
 import (
+	"big"
 	"encoding/binary"
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -155,6 +157,18 @@ func (conn *Conn) writeBind(stmt *Statement) {
 
 		case nil:
 
+		case *big.Rat:
+			if val.IsInt() {
+				values[i] = val.Num().String()
+			} else {
+				// FIXME: Find a better way to do this.
+				prec999 := val.FloatString(999)
+				trimmed := strings.TrimRight(prec999, "0")
+				sepIndex := strings.Index(trimmed, ".")
+				prec := len(trimmed) - sepIndex - 1
+				values[i] = val.FloatString(prec)
+			}
+			
 		case string:
 			values[i] = val
 

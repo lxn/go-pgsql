@@ -5,6 +5,7 @@
 package pgsql
 
 import (
+	"big"
 	"encoding/binary"
 	"math"
 	"os"
@@ -517,6 +518,40 @@ func (res *ResultSet) Int(ord int) (value int, isNull bool, err os.Error) {
 	return
 }
 
+// Rat returns the value of the field with the specified ordinal as *big.Rat.
+func (res *ResultSet) Rat(ord int) (value *big.Rat, isNull bool, err os.Error) {
+	if res.conn.LogLevel >= LogVerbose {
+		defer res.conn.logExit(res.conn.logEnter("*ResultSet.Rat"))
+	}
+
+	defer func() {
+		if x := recover(); x != nil {
+			err = res.conn.logAndConvertPanic(x)
+		}
+	}()
+
+	isNull, err = res.IsNull(ord)
+	if isNull || err != nil {
+		return
+	}
+
+	val := res.values[ord]
+
+	switch res.fields[ord].format {
+	case textFormat:
+		x := big.NewRat(1, 1)
+		if _, ok := x.SetString(string(val)); !ok {
+			panic("*big.Rat.SetString failed")
+		}
+		value = x
+
+	case binaryFormat:
+		panic("not implemented")
+	}
+
+	return
+}
+
 // String returns the value of the field with the specified ordinal as string.
 func (res *ResultSet) String(ord int) (value string, isNull bool, err os.Error) {
 	if res.conn.LogLevel >= LogVerbose {
@@ -729,6 +764,8 @@ func (res *ResultSet) Uint64(ord int) (value uint64, isNull bool, err os.Error) 
 //
 // Integer		int
 //
+// Numeric		*big.Rat
+//
 // Real			float
 //
 // Smallint		int16
@@ -784,6 +821,9 @@ func (res *ResultSet) Any(ord int) (value interface{}, isNull bool, err os.Error
 
 	case _INT8OID:
 		return res.Int64(ord)
+
+	case _NUMERICOID:
+		return res.Rat(ord)
 
 	default:
 		panic("unexpected field data type")
@@ -844,6 +884,13 @@ func (res *ResultSet) Scan(args ...interface{}) (err os.Error) {
 
 		case *interface{}:
 			*a, _, err = res.Any(i)
+
+		case **big.Rat:
+			var r *big.Rat
+			r, _, err = res.Rat(i)
+			if err == nil {
+				*a = r
+			}
 
 		case *string:
 			*a, _, err = res.String(i)

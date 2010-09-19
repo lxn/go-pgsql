@@ -94,6 +94,7 @@ const (
 	Smallint    Type = _INT2OID
 	Integer     Type = _INT4OID
 	Bigint      Type = _INT8OID
+	Numeric		Type = _NUMERICOID
 	Text        Type = _TEXTOID
 	Time        Type = _TIMEOID
 	TimeTZ      Type = _TIMETZOID
@@ -130,6 +131,9 @@ func (t Type) String() string {
 
 	case Bigint:
 		return "Bigint"
+
+	case Numeric:
+		return "Numeric"
 
 	case Text:
 		return "Text"
