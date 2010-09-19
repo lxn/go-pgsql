@@ -168,7 +168,7 @@ func (conn *Conn) writeBind(stmt *Statement) {
 				prec := len(trimmed) - sepIndex - 1
 				values[i] = val.FloatString(prec)
 			}
-			
+
 		case string:
 			values[i] = val
 

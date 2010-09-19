@@ -779,12 +779,12 @@ func Test_Numeric(t *testing.T) {
 	withStatementResultSet(t, "SELECT @num;", []*Parameter{numParam}, func(res *ResultSet) {
 		// Use interface{}, so *resultSet.Any will be tested as well.
 		var numHaveInterface interface{}
-		
+
 		_, err := res.ScanNext(&numHaveInterface)
 		if err != nil {
 			t.Error("failed to scan next:", err)
 		}
-		
+
 		numHave, ok := numHaveInterface.(*big.Rat)
 		if !ok {
 			t.Errorf("unexpected type: %T", numHaveInterface)
