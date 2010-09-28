@@ -814,3 +814,16 @@ func Test_FloatNaN(t *testing.T) {
 		}
 	})
 }
+
+func Test_Parameter_SetValue_NilPtr_ValueReturnsNil(t *testing.T) {
+	initialValue, _ := time.Parse(timestampFormat, "2010-09-28 16:09:32")
+	p := param("@startDateTime", TimestampTZ, initialValue)
+
+	var nilValue *time.Time
+
+	p.SetValue(nilValue)
+
+	if p.Value() != nil {
+		t.Fail()
+	}
+}

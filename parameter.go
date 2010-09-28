@@ -8,6 +8,7 @@ import (
 	"big"
 	"fmt"
 	"os"
+	"reflect"
 	"time"
 )
 
@@ -65,6 +66,12 @@ func (p *Parameter) Value() interface{} {
 func (p *Parameter) panicInvalidValue(v interface{}) {
 	panic(os.NewError(fmt.Sprintf("Parameter %s: Invalid value for PostgreSQL type %s: '%v' (Go type: %T)",
 		p.name, p.typ, v, v)))
+}
+
+func isNilPtr(v interface{}) bool {
+	ptr, ok := reflect.NewValue(v).(*reflect.PtrValue)
+
+	return ok && ptr.IsNil()
 }
 
 // SetValue sets the current value of the Parameter.
@@ -154,6 +161,11 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 			p.value = val
 
 		case *time.Time:
+			if isNilPtr(v) {
+				p.value = nil
+				return
+			}
+
 			t := new(time.Time)
 			*t = *val
 			p.value = t
@@ -212,6 +224,12 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 		if !ok {
 			p.panicInvalidValue(v)
 		}
+
+		if isNilPtr(v) {
+			p.value = nil
+			return
+		}
+
 		p.value = val
 
 	case Real:
