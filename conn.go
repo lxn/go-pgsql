@@ -341,7 +341,7 @@ func (conn *Conn) Execute(command string, params ...*Parameter) (rowsAffected in
 		}
 	}()
 
-	res, err := conn.Query(command, params)
+	res, err := conn.Query(command, params...)
 	if err != nil {
 		return
 	}
@@ -406,7 +406,7 @@ func (conn *Conn) Query(command string, params ...*Parameter) (res *ResultSet, e
 
 		res = r
 	} else {
-		stmt, err = conn.Prepare(command, params)
+		stmt, err = conn.Prepare(command, params...)
 		if err != nil {
 			return
 		}
@@ -450,7 +450,7 @@ func (conn *Conn) Scan(command string, args ...interface{}) (fetched bool, err o
 	}
 	defer res.Close()
 
-	return res.ScanNext(args)
+	return res.ScanNext(args...)
 }
 
 // Status returns the current connection status.

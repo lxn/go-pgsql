@@ -13,11 +13,11 @@ import (
 )
 
 func (conn *Conn) log(level LogLevel, v ...interface{}) {
-	log.Stdout(v)
+	log.Stdout(v...)
 }
 
 func (conn *Conn) logf(level LogLevel, format string, v ...interface{}) {
-	log.Stdoutf(format, v)
+	log.Stdoutf(format, v...)
 }
 
 func (conn *Conn) logError(level LogLevel, err os.Error) {

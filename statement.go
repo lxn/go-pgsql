@@ -310,5 +310,5 @@ func (stmt *Statement) Scan(args ...interface{}) (fetched bool, err os.Error) {
 	}
 	defer res.Close()
 
-	return res.ScanNext(args)
+	return res.ScanNext(args...)
 }

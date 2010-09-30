@@ -955,5 +955,5 @@ func (res *ResultSet) ScanNext(args ...interface{}) (fetched bool, err os.Error)
 		return
 	}
 
-	return true, res.Scan(args)
+	return true, res.Scan(args...)
 }
