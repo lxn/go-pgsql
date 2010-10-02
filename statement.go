@@ -91,7 +91,7 @@ func newStatement(conn *Conn, command string, params []*Parameter) *Statement {
 		defer conn.logExit(conn.logEnter("newStatement"))
 	}
 
-	stmt := new(Statement)
+	stmt := &Statement{}
 
 	stmt.name2param = make(map[string]*Parameter)
 

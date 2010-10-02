@@ -213,7 +213,7 @@ func (conn *Conn) readErrorOrNoticeResponse(isError bool) {
 	// Just eat message length.
 	conn.readInt32()
 
-	err := new(Error)
+	err := &Error{}
 
 	// Read all fields, just ignore unknown ones.
 	for {

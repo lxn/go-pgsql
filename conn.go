@@ -196,7 +196,7 @@ func (conn *Conn) parseParams(s string) *connParams {
 		parseParamsInUnquotedSubstring(s, name2value)
 	}
 
-	params := new(connParams)
+	params := &connParams{}
 
 	params.Host = name2value["host"]
 	params.Port, _ = strconv.Atoi(name2value["port"])
@@ -238,7 +238,7 @@ func (conn *Conn) parseParams(s string) *connParams {
 //
 // timeout	= Timeout in seconds, 0 or not specified disables timeout (default: 0)
 func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {
-	newConn := new(Conn)
+	newConn := &Conn{}
 
 	newConn.LogLevel = logLevel
 	newConn.state = disconnectedState{}

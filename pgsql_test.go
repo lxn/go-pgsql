@@ -488,7 +488,7 @@ type timeTest struct {
 }
 
 func newTimeTest(commandTemplate, format, value string) *timeTest {
-	test := new(timeTest)
+	test := &timeTest{}
 
 	t, err := time.Parse(format, value)
 	if err != nil {

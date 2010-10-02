@@ -166,7 +166,7 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 				return
 			}
 
-			t := new(time.Time)
+			t := &time.Time{}
 			*t = *val
 			p.value = t
 
