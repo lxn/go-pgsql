@@ -142,7 +142,11 @@ type Conn struct {
 	timestampTimezoneFormat         string
 }
 
-func (conn *Conn) withRecover(f func()) (err os.Error) {
+func (conn *Conn) withRecover(funcName string, f func()) (err os.Error) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter(funcName))
+	}
+
 	defer func() {
 		if x := recover(); x != nil {
 			err = conn.logAndConvertPanic(x)
@@ -346,7 +350,7 @@ func (conn *Conn) execute(command string, params ...*Parameter) int64 {
 // of rows affected. If the results of a query are needed, use the
 // Query method instead.
 func (conn *Conn) Execute(command string, params ...*Parameter) (rowsAffected int64, err os.Error) {
-	err = conn.withRecover(func() {
+	err = conn.withRecover("*Conn.Execute", func() {
 		rowsAffected = conn.execute(command, params...)
 	})
 
@@ -368,7 +372,7 @@ func (conn *Conn) prepareSlice(command string, params []*Parameter) *Statement {
 // PrepareSlice returns a new prepared Statement, optimized to be executed multiple
 // times with different parameter values.
 func (conn *Conn) PrepareSlice(command string, params []*Parameter) (stmt *Statement, err os.Error) {
-	err = conn.withRecover(func() {
+	err = conn.withRecover("*Conn.PrepareSlice", func() {
 		stmt = conn.prepareSlice(command, params)
 	})
 
@@ -416,7 +420,7 @@ func (conn *Conn) query(command string, params ...*Parameter) (rs *ResultSet) {
 // The returned ResultSet must be closed before sending another
 // query or command to the server over the same connection.
 func (conn *Conn) Query(command string, params ...*Parameter) (rs *ResultSet, err os.Error) {
-	err = conn.withRecover(func() {
+	err = conn.withRecover("*Conn.Query", func() {
 		rs = conn.query(command, params...)
 	})
 
@@ -450,7 +454,7 @@ func (conn *Conn) scan(command string, args ...interface{}) bool {
 // arguments. The arguments must be of pointer types. If a row has
 // been fetched, fetched will be true, otherwise false.
 func (conn *Conn) Scan(command string, args ...interface{}) (fetched bool, err os.Error) {
-	err = conn.withRecover(func() {
+	err = conn.withRecover("*Conn.Scan", func() {
 		fetched = conn.scan(command, args...)
 	})
 

@@ -184,7 +184,7 @@ func (stmt *Statement) close() {
 
 // Close closes the Statement, releasing resources on the server.
 func (stmt *Statement) Close() (err os.Error) {
-	err = stmt.conn.withRecover(func() {
+	err = stmt.conn.withRecover("*Statement.Close", func() {
 		stmt.close()
 	})
 
@@ -257,7 +257,7 @@ func (stmt *Statement) query() (rs *ResultSet) {
 // The returned ResultSet must be closed before sending another
 // query or command to the server over the same connection.
 func (stmt *Statement) Query() (rs *ResultSet, err os.Error) {
-	err = stmt.conn.withRecover(func() {
+	err = stmt.conn.withRecover("*Statement.Query", func() {
 		rs = stmt.query()
 	})
 
@@ -281,7 +281,7 @@ func (stmt *Statement) execute() (rowsAffected int64) {
 // of rows affected. If the results of a query are needed, use the
 // Query method instead.
 func (stmt *Statement) Execute() (rowsAffected int64, err os.Error) {
-	err = stmt.conn.withRecover(func() {
+	err = stmt.conn.withRecover("*Statement.Execute", func() {
 		rowsAffected = stmt.execute()
 	})
 
@@ -306,7 +306,7 @@ func (stmt *Statement) scan(args ...interface{}) bool {
 // arguments. The arguments must be of pointer types. If a row has
 // been fetched, fetched will be true, otherwise false.
 func (stmt *Statement) Scan(args ...interface{}) (fetched bool, err os.Error) {
-	err = stmt.conn.withRecover(func() {
+	err = stmt.conn.withRecover("*Statement.Scan", func() {
 		fetched = stmt.scan(args...)
 	})
 
