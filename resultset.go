@@ -788,37 +788,23 @@ func (rs *ResultSet) any(ord int) (value interface{}, isNull bool) {
 //
 // Types are mapped as follows:
 //
-// PostgreSQL	Go
+//	PostgreSQL	Go
 //
-// Bigint		int64
-//
-// Boolean		bool
-//
-// Char			string
-//
-// Date			int64
-//
-// Double		float64
-//
-// Integer		int
-//
-// Numeric		*big.Rat
-//
-// Real			float
-//
-// Smallint		int16
-//
-// Text			string
-//
-// Time			int64
-//
-// TimeTZ		int64
-//
-// Timestamp	int64
-//
-// TimestampTZ	int64
-//
-// Varchar		string
+//	Bigint		int64
+//	Boolean		bool
+//	Char		string
+//	Date		int64
+//	Double		float64
+//	Integer		int
+//	Numeric		*big.Rat
+//	Real		float
+//	Smallint	int16
+//	Text		string
+//	Time		int64
+//	TimeTZ		int64
+//	Timestamp	int64
+//	TimestampTZ	int64
+//	Varchar		string
 func (rs *ResultSet) Any(ord int) (value interface{}, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Any", func() {
 		value, isNull = rs.any(ord)

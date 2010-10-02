@@ -242,17 +242,12 @@ func (conn *Conn) parseParams(s string) *connParams {
 //
 // Currently these keywords are supported:
 //
-// host 	= Name of the host to connect to (default: localhost)
-//
-// port 	= Integer port number the server listens on (default: 5432)
-//
-// dbname 	= Database name (default: same as user)
-//
-// user 	= User to connect as
-//
-// password	= Password for password based authentication methods
-//
-// timeout	= Timeout in seconds, 0 or not specified disables timeout (default: 0)
+//	host 		= Name of the host to connect to (default: localhost)
+//	port 		= Integer port number the server listens on (default: 5432)
+//	dbname 		= Database name (default: same as user)
+//	user 		= User to connect as
+//	password	= Password for password based authentication methods
+//	timeout		= Timeout in seconds, 0 or not specified disables timeout (default: 0)
 func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {
 	newConn := &Conn{}
 
