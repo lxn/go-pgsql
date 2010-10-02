@@ -44,3 +44,84 @@ func (abstractState) prepare(stmt *Statement) {
 func (abstractState) query(conn *Conn, res *ResultSet, sql string) {
 	panic(invalidOpForStateMsg)
 }
+
+
+// disconnectedState is the initial state before a connection is established.
+type disconnectedState struct {
+	abstractState
+}
+
+func (disconnectedState) code() ConnStatus {
+	return StatusDisconnected
+}
+
+
+// processingQueryState is the state that is active when
+// the results of a query are being processed.
+type processingQueryState struct {
+	abstractState
+}
+
+func (processingQueryState) code() ConnStatus {
+	return StatusProcessingQuery
+}
+
+
+// readyState is the state that is active when the connection to the
+// PostgreSQL server is ready for queries.
+type readyState struct {
+	abstractState
+}
+
+func (readyState) code() ConnStatus {
+	return StatusReady
+}
+
+func (readyState) execute(stmt *Statement, res *ResultSet) {
+	conn := stmt.conn
+
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("readyState.execute"))
+	}
+
+	conn.writeBind(stmt)
+
+	conn.readBackendMessages(res)
+
+	conn.writeDescribe(stmt)
+
+	conn.readBackendMessages(res)
+
+	conn.writeExecute(stmt)
+
+	conn.writeSync()
+
+	conn.state = processingQueryState{}
+}
+
+func (readyState) prepare(stmt *Statement) {
+	conn := stmt.conn
+
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("readyState.prepare"))
+	}
+
+	conn.writeParse(stmt)
+
+	conn.onErrorDontRequireReadyForQuery = true
+	defer func() { conn.onErrorDontRequireReadyForQuery = false }()
+
+	conn.readBackendMessages(nil)
+}
+
+func (readyState) query(conn *Conn, res *ResultSet, command string) {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("readyState.query"))
+	}
+
+	conn.writeQuery(command)
+
+	conn.readBackendMessages(res)
+
+	conn.state = processingQueryState{}
+}
