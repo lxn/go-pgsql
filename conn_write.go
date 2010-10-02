@@ -29,7 +29,7 @@ func (conn *Conn) writeByte(b byte) {
 
 func (conn *Conn) writeFloat32(f float32) {
 	var buf [4]byte
-	b := buf[0:]
+	b := buf[:]
 
 	binary.BigEndian.PutUint32(b, math.Float32bits(f))
 	conn.write(b)
@@ -37,7 +37,7 @@ func (conn *Conn) writeFloat32(f float32) {
 
 func (conn *Conn) writeFloat64(f float64) {
 	var buf [8]byte
-	b := buf[0:]
+	b := buf[:]
 
 	binary.BigEndian.PutUint64(b, math.Float64bits(f))
 	conn.write(b)
@@ -49,7 +49,7 @@ func (conn *Conn) writeFrontendMessageCode(code frontendMessageCode) {
 
 func (conn *Conn) writeInt16(i int16) {
 	var buf [2]byte
-	b := buf[0:]
+	b := buf[:]
 
 	binary.BigEndian.PutUint16(b, uint16(i))
 	conn.write(b)
@@ -57,7 +57,7 @@ func (conn *Conn) writeInt16(i int16) {
 
 func (conn *Conn) writeInt32(i int32) {
 	var buf [4]byte
-	b := buf[0:]
+	b := buf[:]
 
 	binary.BigEndian.PutUint32(b, uint32(i))
 	conn.write(b)
@@ -65,7 +65,7 @@ func (conn *Conn) writeInt32(i int32) {
 
 func (conn *Conn) writeInt64(i int64) {
 	var buf [8]byte
-	b := buf[0:]
+	b := buf[:]
 
 	binary.BigEndian.PutUint64(b, uint64(i))
 	conn.write(b)

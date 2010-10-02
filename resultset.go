@@ -646,9 +646,9 @@ func (rs *ResultSet) timeSeconds(ord int) (value int64, isNull bool) {
 				plusOrMinus := strings.IndexAny(s[lastDot:], "+-")
 				if -1 < plusOrMinus {
 					// There is a time zone
-					s = s[0:lastDot] + s[lastDot+plusOrMinus:]
+					s = s[:lastDot] + s[lastDot+plusOrMinus:]
 				} else {
-					s = s[0:lastDot]
+					s = s[:lastDot]
 				}
 			}
 		}

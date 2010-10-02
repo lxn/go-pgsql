@@ -34,7 +34,7 @@ func (conn *Conn) readBytes(delim byte) []byte {
 
 func (conn *Conn) readInt16() int16 {
 	var buf [2]byte
-	b := buf[0:]
+	b := buf[:]
 
 	conn.read(b)
 	return int16(binary.BigEndian.Uint16(b))
@@ -42,7 +42,7 @@ func (conn *Conn) readInt16() int16 {
 
 func (conn *Conn) readInt32() int32 {
 	var buf [4]byte
-	b := buf[0:]
+	b := buf[:]
 
 	conn.read(b)
 	return int32(binary.BigEndian.Uint32(b))
@@ -50,7 +50,7 @@ func (conn *Conn) readInt32() int32 {
 
 func (conn *Conn) readString() string {
 	b := conn.readBytes(0)
-	return string(b[0 : len(b)-1])
+	return string(b[:len(b)-1])
 }
 
 func (conn *Conn) readAuthenticationRequest() {

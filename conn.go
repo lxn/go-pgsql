@@ -163,7 +163,7 @@ func parseParamsInUnquotedSubstring(s string, name2value map[string]string) (las
 			break
 		}
 
-		word := s[0:index]
+		word := s[:index]
 		if word != "" {
 			words.Push(word)
 		}
