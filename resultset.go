@@ -265,9 +265,9 @@ func (rs *ResultSet) Ordinal(name string) int {
 	return ord
 }
 
-func (rs *ResultSet) bool_(ord int) (value, isNull bool) {
+func (rs *ResultSet) bool(ord int) (value, isNull bool) {
 	if rs.conn.LogLevel >= LogVerbose {
-		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.bool_"))
+		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.bool"))
 	}
 
 	isNull = rs.isNull(ord)
@@ -291,15 +291,15 @@ func (rs *ResultSet) bool_(ord int) (value, isNull bool) {
 // Bool returns the value of the field with the specified ordinal as bool.
 func (rs *ResultSet) Bool(ord int) (value, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Bool", func() {
-		value, isNull = rs.bool_(ord)
+		value, isNull = rs.bool(ord)
 	})
 
 	return
 }
 
-func (rs *ResultSet) float32_(ord int) (value float32, isNull bool) {
+func (rs *ResultSet) float32(ord int) (value float32, isNull bool) {
 	if rs.conn.LogLevel >= LogVerbose {
-		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.float32_"))
+		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.float32"))
 	}
 
 	isNull = rs.isNull(ord)
@@ -330,15 +330,15 @@ func (rs *ResultSet) float32_(ord int) (value float32, isNull bool) {
 // Float32 returns the value of the field with the specified ordinal as float32.
 func (rs *ResultSet) Float32(ord int) (value float32, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Float32", func() {
-		value, isNull = rs.float32_(ord)
+		value, isNull = rs.float32(ord)
 	})
 
 	return
 }
 
-func (rs *ResultSet) float64_(ord int) (value float64, isNull bool) {
+func (rs *ResultSet) float64(ord int) (value float64, isNull bool) {
 	if rs.conn.LogLevel >= LogVerbose {
-		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.float64_"))
+		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.float64"))
 	}
 
 	isNull = rs.isNull(ord)
@@ -369,15 +369,15 @@ func (rs *ResultSet) float64_(ord int) (value float64, isNull bool) {
 // Float64 returns the value of the field with the specified ordinal as float64.
 func (rs *ResultSet) Float64(ord int) (value float64, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Float64", func() {
-		value, isNull = rs.float64_(ord)
+		value, isNull = rs.float64(ord)
 	})
 
 	return
 }
 
-func (rs *ResultSet) float_(ord int) (value float, isNull bool) {
+func (rs *ResultSet) float(ord int) (value float, isNull bool) {
 	var val float32
-	val, isNull = rs.float32_(ord)
+	val, isNull = rs.float32(ord)
 	value = float(val)
 
 	return
@@ -386,15 +386,15 @@ func (rs *ResultSet) float_(ord int) (value float, isNull bool) {
 // Float returns the value of the field with the specified ordinal as float.
 func (rs *ResultSet) Float(ord int) (value float, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Float", func() {
-		value, isNull = rs.float_(ord)
+		value, isNull = rs.float(ord)
 	})
 
 	return
 }
 
-func (rs *ResultSet) int16_(ord int) (value int16, isNull bool) {
+func (rs *ResultSet) int16(ord int) (value int16, isNull bool) {
 	if rs.conn.LogLevel >= LogVerbose {
-		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.int16_"))
+		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.int16"))
 	}
 
 	isNull = rs.isNull(ord)
@@ -420,15 +420,15 @@ func (rs *ResultSet) int16_(ord int) (value int16, isNull bool) {
 // Int16 returns the value of the field with the specified ordinal as int16.
 func (rs *ResultSet) Int16(ord int) (value int16, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Int16", func() {
-		value, isNull = rs.int16_(ord)
+		value, isNull = rs.int16(ord)
 	})
 
 	return
 }
 
-func (rs *ResultSet) int32_(ord int) (value int32, isNull bool) {
+func (rs *ResultSet) int32(ord int) (value int32, isNull bool) {
 	if rs.conn.LogLevel >= LogVerbose {
-		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.int32_"))
+		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.int32"))
 	}
 
 	isNull = rs.isNull(ord)
@@ -454,15 +454,15 @@ func (rs *ResultSet) int32_(ord int) (value int32, isNull bool) {
 // Int32 returns the value of the field with the specified ordinal as int32.
 func (rs *ResultSet) Int32(ord int) (value int32, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Int32", func() {
-		value, isNull = rs.int32_(ord)
+		value, isNull = rs.int32(ord)
 	})
 
 	return
 }
 
-func (rs *ResultSet) int64_(ord int) (value int64, isNull bool) {
+func (rs *ResultSet) int64(ord int) (value int64, isNull bool) {
 	if rs.conn.LogLevel >= LogVerbose {
-		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.int64_"))
+		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.int64"))
 	}
 
 	isNull = rs.isNull(ord)
@@ -488,15 +488,15 @@ func (rs *ResultSet) int64_(ord int) (value int64, isNull bool) {
 // Int64 returns the value of the field with the specified ordinal as int64.
 func (rs *ResultSet) Int64(ord int) (value int64, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Int64", func() {
-		value, isNull = rs.int64_(ord)
+		value, isNull = rs.int64(ord)
 	})
 
 	return
 }
 
-func (rs *ResultSet) int_(ord int) (value int, isNull bool) {
+func (rs *ResultSet) int(ord int) (value int, isNull bool) {
 	var val int32
-	val, isNull = rs.int32_(ord)
+	val, isNull = rs.int32(ord)
 	value = int(val)
 
 	return
@@ -505,7 +505,7 @@ func (rs *ResultSet) int_(ord int) (value int, isNull bool) {
 // Int returns the value of the field with the specified ordinal as int.
 func (rs *ResultSet) Int(ord int) (value int, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Int", func() {
-		value, isNull = rs.int_(ord)
+		value, isNull = rs.int(ord)
 	})
 
 	return
@@ -547,9 +547,9 @@ func (rs *ResultSet) Rat(ord int) (value *big.Rat, isNull bool, err os.Error) {
 	return
 }
 
-func (rs *ResultSet) string_(ord int) (value string, isNull bool) {
+func (rs *ResultSet) string(ord int) (value string, isNull bool) {
 	if rs.conn.LogLevel >= LogVerbose {
-		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.string_"))
+		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.string"))
 	}
 
 	isNull = rs.isNull(ord)
@@ -565,7 +565,7 @@ func (rs *ResultSet) string_(ord int) (value string, isNull bool) {
 // String returns the value of the field with the specified ordinal as string.
 func (rs *ResultSet) String(ord int) (value string, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.String", func() {
-		value, isNull = rs.string_(ord)
+		value, isNull = rs.string(ord)
 	})
 
 	return
@@ -675,9 +675,9 @@ func (rs *ResultSet) TimeSeconds(ord int) (value int64, isNull bool, err os.Erro
 	return
 }
 
-func (rs *ResultSet) uint_(ord int) (value uint, isNull bool) {
+func (rs *ResultSet) uint(ord int) (value uint, isNull bool) {
 	var val uint32
-	val, isNull = rs.uint32_(ord)
+	val, isNull = rs.uint32(ord)
 	value = uint(val)
 
 	return
@@ -686,15 +686,15 @@ func (rs *ResultSet) uint_(ord int) (value uint, isNull bool) {
 // Uint returns the value of the field with the specified ordinal as uint.
 func (rs *ResultSet) Uint(ord int) (value uint, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Uint", func() {
-		value, isNull = rs.uint_(ord)
+		value, isNull = rs.uint(ord)
 	})
 
 	return
 }
 
-func (rs *ResultSet) uint16_(ord int) (value uint16, isNull bool) {
+func (rs *ResultSet) uint16(ord int) (value uint16, isNull bool) {
 	var val int16
-	val, isNull = rs.int16_(ord)
+	val, isNull = rs.int16(ord)
 	value = uint16(val)
 
 	return
@@ -703,15 +703,15 @@ func (rs *ResultSet) uint16_(ord int) (value uint16, isNull bool) {
 // Uint16 returns the value of the field with the specified ordinal as uint16.
 func (rs *ResultSet) Uint16(ord int) (value uint16, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Uint16", func() {
-		value, isNull = rs.uint16_(ord)
+		value, isNull = rs.uint16(ord)
 	})
 
 	return
 }
 
-func (rs *ResultSet) uint32_(ord int) (value uint32, isNull bool) {
+func (rs *ResultSet) uint32(ord int) (value uint32, isNull bool) {
 	var val int32
-	val, isNull = rs.int32_(ord)
+	val, isNull = rs.int32(ord)
 	value = uint32(val)
 
 	return
@@ -720,15 +720,15 @@ func (rs *ResultSet) uint32_(ord int) (value uint32, isNull bool) {
 // Uint32 returns the value of the field with the specified ordinal as uint32.
 func (rs *ResultSet) Uint32(ord int) (value uint32, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Uint32", func() {
-		value, isNull = rs.uint32_(ord)
+		value, isNull = rs.uint32(ord)
 	})
 
 	return
 }
 
-func (rs *ResultSet) uint64_(ord int) (value uint64, isNull bool) {
+func (rs *ResultSet) uint64(ord int) (value uint64, isNull bool) {
 	var val int64
-	val, isNull = rs.int64_(ord)
+	val, isNull = rs.int64(ord)
 	value = uint64(val)
 
 	return
@@ -737,7 +737,7 @@ func (rs *ResultSet) uint64_(ord int) (value uint64, isNull bool) {
 // Uint64 returns the value of the field with the specified ordinal as uint64.
 func (rs *ResultSet) Uint64(ord int) (value uint64, isNull bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Uint64", func() {
-		value, isNull = rs.uint64_(ord)
+		value, isNull = rs.uint64(ord)
 	})
 
 	return
@@ -751,28 +751,28 @@ func (rs *ResultSet) any(ord int) (value interface{}, isNull bool) {
 
 	switch rs.fields[ord].typeOID {
 	case _BOOLOID:
-		value, isNull = rs.bool_(ord)
+		value, isNull = rs.bool(ord)
 
 	case _CHAROID, _VARCHAROID, _TEXTOID:
-		value, isNull = rs.string_(ord)
+		value, isNull = rs.string(ord)
 
 	case _DATEOID, _TIMEOID, _TIMETZOID, _TIMESTAMPOID, _TIMESTAMPTZOID:
 		value, isNull = rs.timeSeconds(ord)
 
 	case _FLOAT4OID:
-		value, isNull = rs.float_(ord)
+		value, isNull = rs.float(ord)
 
 	case _FLOAT8OID:
-		value, isNull = rs.float64_(ord)
+		value, isNull = rs.float64(ord)
 
 	case _INT2OID:
-		value, isNull = rs.int16_(ord)
+		value, isNull = rs.int16(ord)
 
 	case _INT4OID:
-		value, isNull = rs.int_(ord)
+		value, isNull = rs.int(ord)
 
 	case _INT8OID:
-		value, isNull = rs.int64_(ord)
+		value, isNull = rs.int64(ord)
 
 	case _NUMERICOID:
 		value, isNull = rs.rat(ord)
@@ -825,25 +825,25 @@ func (rs *ResultSet) scan(args ...interface{}) {
 	for i, arg := range args {
 		switch a := arg.(type) {
 		case *bool:
-			*a, _ = rs.bool_(i)
+			*a, _ = rs.bool(i)
 
 		case *float:
-			*a, _ = rs.float_(i)
+			*a, _ = rs.float(i)
 
 		case *float32:
-			*a, _ = rs.float32_(i)
+			*a, _ = rs.float32(i)
 
 		case *float64:
-			*a, _ = rs.float64_(i)
+			*a, _ = rs.float64(i)
 
 		case *int:
-			*a, _ = rs.int_(i)
+			*a, _ = rs.int(i)
 
 		case *int16:
-			*a, _ = rs.int16_(i)
+			*a, _ = rs.int16(i)
 
 		case *int32:
-			*a, _ = rs.int32_(i)
+			*a, _ = rs.int32(i)
 
 		case *int64:
 			switch rs.fields[i].typeOID {
@@ -851,7 +851,7 @@ func (rs *ResultSet) scan(args ...interface{}) {
 				*a, _ = rs.timeSeconds(i)
 
 			default:
-				*a, _ = rs.int64_(i)
+				*a, _ = rs.int64(i)
 			}
 
 		case *interface{}:
@@ -863,7 +863,7 @@ func (rs *ResultSet) scan(args ...interface{}) {
 			*a = r
 
 		case *string:
-			*a, _ = rs.string_(i)
+			*a, _ = rs.string(i)
 
 		case **time.Time:
 			var t *time.Time
@@ -871,13 +871,13 @@ func (rs *ResultSet) scan(args ...interface{}) {
 			*a = t
 
 		case *uint:
-			*a, _ = rs.uint_(i)
+			*a, _ = rs.uint(i)
 
 		case *uint16:
-			*a, _ = rs.uint16_(i)
+			*a, _ = rs.uint16(i)
 
 		case *uint32:
-			*a, _ = rs.uint32_(i)
+			*a, _ = rs.uint32(i)
 
 		case *uint64:
 			switch rs.fields[i].typeOID {
@@ -887,7 +887,7 @@ func (rs *ResultSet) scan(args ...interface{}) {
 				*a = uint64(seconds)
 
 			default:
-				*a, _ = rs.uint64_(i)
+				*a, _ = rs.uint64(i)
 			}
 		}
 	}
