@@ -234,7 +234,7 @@ func (conn *Conn) parseParams(s string) *connParams {
 //
 // user 	= User to connect as
 //
-// password = Password for password based authentication methods
+// password	= Password for password based authentication methods
 //
 // timeout	= Timeout in seconds, 0 or not specified disables timeout (default: 0)
 func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {

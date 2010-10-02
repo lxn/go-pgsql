@@ -8,6 +8,19 @@ import (
 	"fmt"
 )
 
+// Error contains detailed error information received from a PostgreSQL backend.
+//
+// Many go-pgsql functions return an os.Error value. In case of a backend error,
+// a type assertion as shown below gives you a *pgsql.Error with all details:
+//
+//	...
+//	_, err := rs.FetchNext()
+//	if err != nil {
+//		if pgerr, ok := err.(*pgsql.Error); ok {
+//			// Do something with pgerr
+//		}
+//	}
+//	...
 type Error struct {
 	severity         string
 	code             string
