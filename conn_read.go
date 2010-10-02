@@ -15,25 +15,19 @@ import (
 
 func (conn *Conn) read(b []byte) {
 	_, err := conn.reader.Read(b)
-	if err != nil {
-		panic(fmt.Sprintf("read failed: %s", err))
-	}
+	panicIfErr(err)
 }
 
 func (conn *Conn) readByte() byte {
 	b, err := conn.reader.ReadByte()
-	if err != nil {
-		panic(fmt.Sprintf("readByte failed: %s", err))
-	}
+	panicIfErr(err)
 
 	return b
 }
 
 func (conn *Conn) readBytes(delim byte) []byte {
 	b, err := conn.reader.ReadBytes(delim)
-	if err != nil {
-		panic(fmt.Sprintf("readBytes failed: %s", err))
-	}
+	panicIfErr(err)
 
 	return b
 }
@@ -84,26 +78,20 @@ func (conn *Conn) readAuthenticationRequest() {
 		md5Hasher := md5.New()
 
 		_, err := md5Hasher.Write([]byte(conn.params.Password))
-		if err != nil {
-			panic("md5Hasher.Write failed")
-		}
+		panicIfErr(err)
+
 		_, err = md5Hasher.Write([]byte(conn.params.User))
-		if err != nil {
-			panic("md5Hasher.Write failed")
-		}
+		panicIfErr(err)
 
 		md5HashHex1 := hex.EncodeToString(md5Hasher.Sum())
 
 		md5Hasher.Reset()
 
 		_, err = md5Hasher.Write([]byte(md5HashHex1))
-		if err != nil {
-			panic("md5Hasher.Write failed")
-		}
+		panicIfErr(err)
+
 		_, err = md5Hasher.Write(salt)
-		if err != nil {
-			panic("md5Hasher.Write failed")
-		}
+		panicIfErr(err)
 
 		md5HashHex2 := hex.EncodeToString(md5Hasher.Sum())
 
@@ -369,8 +357,9 @@ func (conn *Conn) readRowDescription(rs *ResultSet) {
 
 		format := fieldFormat(conn.readInt16())
 		switch format {
-		case textFormat:
-		case binaryFormat:
+		case textFormat, binaryFormat:
+			// nop
+
 		default:
 			panic("unsupported field format")
 		}

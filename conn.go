@@ -142,6 +142,18 @@ type Conn struct {
 	timestampTimezoneFormat         string
 }
 
+func (conn *Conn) withRecover(f func()) (err os.Error) {
+	defer func() {
+		if x := recover(); x != nil {
+			err = conn.logAndConvertPanic(x)
+		}
+	}()
+
+	f()
+
+	return
+}
+
 func parseParamsInUnquotedSubstring(s string, name2value map[string]string) (lastKeyword string) {
 	var words vector.StringVector
 
@@ -267,14 +279,9 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {
 	}
 
 	tcpConn, err := net.Dial("tcp", "", fmt.Sprintf("%s:%d", params.Host, params.Port))
-	if err != nil {
-		panic(err)
-	}
+	panicIfErr(err)
 
-	err = tcpConn.SetReadTimeout(int64(params.TimeoutSeconds * 1000 * 1000 * 1000))
-	if err != nil {
-		panic(err)
-	}
+	panicIfErr(tcpConn.SetReadTimeout(int64(params.TimeoutSeconds * 1000 * 1000 * 1000)))
 
 	newConn.tcpConn = tcpConn
 
@@ -317,86 +324,75 @@ func (conn *Conn) Close() (err os.Error) {
 
 	conn.writeTerminate()
 
-	err = conn.tcpConn.Close()
-	if err != nil {
-		panic(err)
-	}
+	panicIfErr(conn.tcpConn.Close())
 
 	conn.state = disconnectedState{}
 
 	return
 }
 
+func (conn *Conn) execute(command string, params ...*Parameter) int64 {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.execute"))
+	}
+
+	rs := conn.query(command, params...)
+	rs.close()
+
+	return rs.rowsAffected
+}
+
 // Execute sends a SQL command to the server and returns the number
 // of rows affected. If the results of a query are needed, use the
 // Query method instead.
 func (conn *Conn) Execute(command string, params ...*Parameter) (rowsAffected int64, err os.Error) {
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.Execute"))
-	}
+	err = conn.withRecover(func() {
+		rowsAffected = conn.execute(command, params...)
+	})
 
-	defer func() {
-		if x := recover(); x != nil {
-			err = conn.logAndConvertPanic(x)
-		}
-	}()
-
-	rs, err := conn.Query(command, params...)
-	if err != nil {
-		return
-	}
-
-	err = rs.Close()
-
-	rowsAffected = rs.rowsAffected
 	return
+}
+
+func (conn *Conn) prepareSlice(command string, params []*Parameter) *Statement {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.prepareSlice"))
+	}
+
+	stmt := newStatement(conn, command, params)
+
+	conn.state.prepare(stmt)
+
+	return stmt
 }
 
 // PrepareSlice returns a new prepared Statement, optimized to be executed multiple
 // times with different parameter values.
 func (conn *Conn) PrepareSlice(command string, params []*Parameter) (stmt *Statement, err os.Error) {
+	err = conn.withRecover(func() {
+		stmt = conn.prepareSlice(command, params)
+	})
+
+	return
+}
+
+func (conn *Conn) prepare(command string, params ...*Parameter) *Statement {
 	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.PrepareSlice"))
+		defer conn.logExit(conn.logEnter("*Conn.prepare"))
 	}
 
-	defer func() {
-		if x := recover(); x != nil {
-			err = conn.logAndConvertPanic(x)
-		}
-	}()
-
-	statement := newStatement(conn, command, params)
-
-	conn.state.prepare(statement)
-
-	stmt = statement
-	return
+	return conn.prepareSlice(command, params)
 }
 
 // Prepare returns a new prepared Statement, optimized to be executed multiple
 // times with different parameter values.
 func (conn *Conn) Prepare(command string, params ...*Parameter) (stmt *Statement, err os.Error) {
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.Prepare"))
-	}
-
 	return conn.PrepareSlice(command, params)
 }
 
-// Query sends a SQL query to the server and returns a
-// ResultSet for row-by-row retrieval of the results.
-// The returned ResultSet must be closed before sending another
-// query or command to the server over the same connection.
-func (conn *Conn) Query(command string, params ...*Parameter) (rs *ResultSet, err os.Error) {
+func (conn *Conn) query(command string, params ...*Parameter) (rs *ResultSet) {
 	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.Query"))
+		defer conn.logExit(conn.logEnter("*Conn.query"))
 	}
-
-	defer func() {
-		if x := recover(); x != nil {
-			err = conn.logAndConvertPanic(x)
-		}
-	}()
 
 	var stmt *Statement
 	if len(params) == 0 {
@@ -406,14 +402,23 @@ func (conn *Conn) Query(command string, params ...*Parameter) (rs *ResultSet, er
 
 		rs = r
 	} else {
-		stmt, err = conn.Prepare(command, params...)
-		if err != nil {
-			return
-		}
-		defer stmt.Close()
+		stmt = conn.prepare(command, params...)
+		defer stmt.close()
 
-		rs, err = stmt.Query()
+		rs = stmt.query()
 	}
+
+	return
+}
+
+// Query sends a SQL query to the server and returns a
+// ResultSet for row-by-row retrieval of the results.
+// The returned ResultSet must be closed before sending another
+// query or command to the server over the same connection.
+func (conn *Conn) Query(command string, params ...*Parameter) (rs *ResultSet, err os.Error) {
+	err = conn.withRecover(func() {
+		rs = conn.query(command, params...)
+	})
 
 	return
 }
@@ -429,28 +434,27 @@ func (conn *Conn) RuntimeParameter(name string) (value string, ok bool) {
 	return
 }
 
+func (conn *Conn) scan(command string, args ...interface{}) bool {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.scan"))
+	}
+
+	rs := conn.query(command)
+	defer rs.close()
+
+	return rs.scanNext(args...)
+}
+
 // Scan executes the command and scans the fields of the first row
 // in the ResultSet, trying to store field values into the specified
 // arguments. The arguments must be of pointer types. If a row has
 // been fetched, fetched will be true, otherwise false.
 func (conn *Conn) Scan(command string, args ...interface{}) (fetched bool, err os.Error) {
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.Scan"))
-	}
+	err = conn.withRecover(func() {
+		fetched = conn.scan(command, args...)
+	})
 
-	defer func() {
-		if x := recover(); x != nil {
-			err = conn.logAndConvertPanic(x)
-		}
-	}()
-
-	rs, err := conn.Query(command)
-	if err != nil {
-		return
-	}
-	defer rs.Close()
-
-	return rs.ScanNext(args...)
+	return
 }
 
 // Status returns the current connection status.
@@ -488,7 +492,7 @@ func (conn *Conn) WithTransaction(isolation IsolationLevel, f func() os.Error) (
 			err = conn.logAndConvertPanic("error in transaction")
 		}
 		if err != nil && oldStatus == NotInTransaction {
-			conn.Execute("ROLLBACK;")
+			conn.execute("ROLLBACK;")
 		}
 	}()
 
@@ -500,19 +504,13 @@ func (conn *Conn) WithTransaction(isolation IsolationLevel, f func() os.Error) (
 			isol = "READ COMMITTED"
 		}
 		cmd := fmt.Sprintf("BEGIN; SET TRANSACTION ISOLATION LEVEL %s;", isol)
-		_, err = conn.Execute(cmd)
-		if err != nil {
-			panic(err)
-		}
+		conn.execute(cmd)
 	}
 
-	err = f()
-	if err != nil {
-		panic(err)
-	}
+	panicIfErr(f())
 
 	if oldStatus == NotInTransaction && conn.transactionStatus == InTransaction {
-		_, err = conn.Execute("COMMIT;")
+		conn.execute("COMMIT;")
 	}
 	return
 }
@@ -549,19 +547,13 @@ func (conn *Conn) WithSavepoint(isolation IsolationLevel, f func() os.Error) (er
 			err = conn.logAndConvertPanic("error in transaction")
 		}
 		if err != nil {
-			conn.Execute(fmt.Sprintf("ROLLBACK TO %s;", savepointName))
+			conn.execute(fmt.Sprintf("ROLLBACK TO %s;", savepointName))
 		}
 	}()
 
-	_, err = conn.Execute(fmt.Sprintf("SAVEPOINT %s;", savepointName))
-	if err != nil {
-		panic(err)
-	}
+	conn.execute(fmt.Sprintf("SAVEPOINT %s;", savepointName))
 
-	err = f()
-	if err != nil {
-		panic(err)
-	}
+	panicIfErr(f())
 
 	return
 }

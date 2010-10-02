@@ -15,24 +15,16 @@ import (
 )
 
 func (conn *Conn) flush() {
-	err := conn.writer.Flush()
-	if err != nil {
-		panic(fmt.Sprintf("flush failed: %s", err))
-	}
+	panicIfErr(conn.writer.Flush())
 }
 
 func (conn *Conn) write(b []byte) {
 	_, err := conn.writer.Write(b)
-	if err != nil {
-		panic(fmt.Sprintf("write failed: %s", err))
-	}
+	panicIfErr(err)
 }
 
 func (conn *Conn) writeByte(b byte) {
-	err := conn.writer.WriteByte(b)
-	if err != nil {
-		panic(fmt.Sprintf("writeByte failed: %s", err))
-	}
+	panicIfErr(conn.writer.WriteByte(b))
 }
 
 func (conn *Conn) writeFloat32(f float32) {
@@ -52,10 +44,7 @@ func (conn *Conn) writeFloat64(f float64) {
 }
 
 func (conn *Conn) writeFrontendMessageCode(code frontendMessageCode) {
-	err := conn.writer.WriteByte(byte(code))
-	if err != nil {
-		panic(fmt.Sprintf("writeFrontendMessageCode failed: %s", err))
-	}
+	panicIfErr(conn.writer.WriteByte(byte(code)))
 }
 
 func (conn *Conn) writeInt16(i int16) {
@@ -84,9 +73,7 @@ func (conn *Conn) writeInt64(i int64) {
 
 func (conn *Conn) writeString(s string) {
 	_, err := conn.writer.WriteString(s)
-	if err != nil {
-		panic(fmt.Sprintf("writeString failed: %s", err))
-	}
+	panicIfErr(err)
 }
 
 func (conn *Conn) writeString0(s string) {

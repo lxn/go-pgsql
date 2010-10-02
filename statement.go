@@ -169,23 +169,25 @@ func (stmt *Statement) IsClosed() bool {
 	return stmt.isClosed
 }
 
-// Close closes the Statement, releasing resources on the server.
-func (stmt *Statement) Close() (err os.Error) {
+func (stmt *Statement) close() {
 	conn := stmt.conn
 
 	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Statement.Close"))
+		defer conn.logExit(conn.logEnter("*Statement.close"))
 	}
-
-	defer func() {
-		if x := recover(); x != nil {
-			err = conn.logAndConvertPanic(x)
-		}
-	}()
 
 	stmt.conn.writeClose('S', stmt.name)
 
 	stmt.isClosed = true
+	return
+}
+
+// Close closes the Statement, releasing resources on the server.
+func (stmt *Statement) Close() (err os.Error) {
+	err = stmt.conn.withRecover(func() {
+		stmt.close()
+	})
+
 	return
 }
 
@@ -215,22 +217,12 @@ func (stmt *Statement) Command() string {
 	return stmt.command
 }
 
-// Query executes the Statement and returns a
-// ResultSet for row-by-row retrieval of the results.
-// The returned ResultSet must be closed before sending another
-// query or command to the server over the same connection.
-func (stmt *Statement) Query() (rs *ResultSet, err os.Error) {
+func (stmt *Statement) query() (rs *ResultSet) {
 	conn := stmt.conn
 
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Statement.Query"))
 	}
-
-	defer func() {
-		if x := recover(); x != nil {
-			err = conn.logAndConvertPanic(x)
-		}
-	}()
 
 	if conn.LogLevel >= LogCommand {
 		buf := bytes.NewBuffer(nil)
@@ -260,31 +252,53 @@ func (stmt *Statement) Query() (rs *ResultSet, err os.Error) {
 	return
 }
 
-// Execute executes the Statement and returns the number
-// of rows affected. If the results of a query are needed, use the
-// Query method instead.
-func (stmt *Statement) Execute() (rowsAffected int64, err os.Error) {
+// Query executes the Statement and returns a
+// ResultSet for row-by-row retrieval of the results.
+// The returned ResultSet must be closed before sending another
+// query or command to the server over the same connection.
+func (stmt *Statement) Query() (rs *ResultSet, err os.Error) {
+	err = stmt.conn.withRecover(func() {
+		rs = stmt.query()
+	})
+
+	return
+}
+
+func (stmt *Statement) execute() (rowsAffected int64) {
 	conn := stmt.conn
 
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Statement.Execute"))
 	}
 
-	defer func() {
-		if x := recover(); x != nil {
-			err = conn.logAndConvertPanic(x)
-		}
-	}()
+	rs := stmt.query()
+	rs.close()
 
-	rs, err := stmt.Query()
-	if err != nil {
-		return
+	return rs.rowsAffected
+}
+
+// Execute executes the Statement and returns the number
+// of rows affected. If the results of a query are needed, use the
+// Query method instead.
+func (stmt *Statement) Execute() (rowsAffected int64, err os.Error) {
+	err = stmt.conn.withRecover(func() {
+		rowsAffected = stmt.execute()
+	})
+
+	return
+}
+
+func (stmt *Statement) scan(args ...interface{}) bool {
+	conn := stmt.conn
+
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Statement.Scan"))
 	}
 
-	err = rs.Close()
+	rs := stmt.query()
+	defer rs.Close()
 
-	rowsAffected = rs.rowsAffected
-	return
+	return rs.scanNext(args...)
 }
 
 // Scan executes the statement and scans the fields of the first row
@@ -292,23 +306,9 @@ func (stmt *Statement) Execute() (rowsAffected int64, err os.Error) {
 // arguments. The arguments must be of pointer types. If a row has
 // been fetched, fetched will be true, otherwise false.
 func (stmt *Statement) Scan(args ...interface{}) (fetched bool, err os.Error) {
-	conn := stmt.conn
+	err = stmt.conn.withRecover(func() {
+		fetched = stmt.scan(args...)
+	})
 
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Statement.Scan"))
-	}
-
-	defer func() {
-		if x := recover(); x != nil {
-			err = conn.logAndConvertPanic(x)
-		}
-	}()
-
-	rs, err := stmt.Query()
-	if err != nil {
-		return
-	}
-	defer rs.Close()
-
-	return rs.ScanNext(args...)
+	return
 }
