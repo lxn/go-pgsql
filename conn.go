@@ -341,14 +341,14 @@ func (conn *Conn) Execute(command string, params ...*Parameter) (rowsAffected in
 		}
 	}()
 
-	res, err := conn.Query(command, params...)
+	rs, err := conn.Query(command, params...)
 	if err != nil {
 		return
 	}
 
-	err = res.Close()
+	err = rs.Close()
 
-	rowsAffected = res.rowsAffected
+	rowsAffected = rs.rowsAffected
 	return
 }
 
@@ -387,7 +387,7 @@ func (conn *Conn) Prepare(command string, params ...*Parameter) (stmt *Statement
 // ResultSet for row-by-row retrieval of the results.
 // The returned ResultSet must be closed before sending another
 // query or command to the server over the same connection.
-func (conn *Conn) Query(command string, params ...*Parameter) (res *ResultSet, err os.Error) {
+func (conn *Conn) Query(command string, params ...*Parameter) (rs *ResultSet, err os.Error) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.Query"))
 	}
@@ -404,7 +404,7 @@ func (conn *Conn) Query(command string, params ...*Parameter) (res *ResultSet, e
 
 		conn.state.query(conn, r, command)
 
-		res = r
+		rs = r
 	} else {
 		stmt, err = conn.Prepare(command, params...)
 		if err != nil {
@@ -412,7 +412,7 @@ func (conn *Conn) Query(command string, params ...*Parameter) (res *ResultSet, e
 		}
 		defer stmt.Close()
 
-		res, err = stmt.Query()
+		rs, err = stmt.Query()
 	}
 
 	return
@@ -444,13 +444,13 @@ func (conn *Conn) Scan(command string, args ...interface{}) (fetched bool, err o
 		}
 	}()
 
-	res, err := conn.Query(command)
+	rs, err := conn.Query(command)
 	if err != nil {
 		return
 	}
-	defer res.Close()
+	defer rs.Close()
 
-	return res.ScanNext(args...)
+	return rs.ScanNext(args...)
 }
 
 // Status returns the current connection status.

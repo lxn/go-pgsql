@@ -219,7 +219,7 @@ func (stmt *Statement) Command() string {
 // ResultSet for row-by-row retrieval of the results.
 // The returned ResultSet must be closed before sending another
 // query or command to the server over the same connection.
-func (stmt *Statement) Query() (res *ResultSet, err os.Error) {
+func (stmt *Statement) Query() (rs *ResultSet, err os.Error) {
 	conn := stmt.conn
 
 	if conn.LogLevel >= LogDebug {
@@ -255,7 +255,7 @@ func (stmt *Statement) Query() (res *ResultSet, err os.Error) {
 
 	conn.state.execute(stmt, r)
 
-	res = r
+	rs = r
 
 	return
 }
@@ -276,14 +276,14 @@ func (stmt *Statement) Execute() (rowsAffected int64, err os.Error) {
 		}
 	}()
 
-	res, err := stmt.Query()
+	rs, err := stmt.Query()
 	if err != nil {
 		return
 	}
 
-	err = res.Close()
+	err = rs.Close()
 
-	rowsAffected = res.rowsAffected
+	rowsAffected = rs.rowsAffected
 	return
 }
 
@@ -304,11 +304,11 @@ func (stmt *Statement) Scan(args ...interface{}) (fetched bool, err os.Error) {
 		}
 	}()
 
-	res, err := stmt.Query()
+	rs, err := stmt.Query()
 	if err != nil {
 		return
 	}
-	defer res.Close()
+	defer rs.Close()
 
-	return res.ScanNext(args...)
+	return rs.ScanNext(args...)
 }

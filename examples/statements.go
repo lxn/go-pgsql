@@ -11,16 +11,16 @@ import (
 )
 
 func queryAndPrintResults(stmt *pgsql.Statement) {
-	res, err := stmt.Query()
+	rs, err := stmt.Query()
 	if err != nil {
 		os.Exit(1)
 	}
-	defer res.Close()
+	defer rs.Close()
 
-	stroptOrd := res.Ordinal("stropt")
+	stroptOrd := rs.Ordinal("stropt")
 
 	for {
-		hasRow, err := res.FetchNext()
+		hasRow, err := rs.FetchNext()
 		if err != nil {
 			os.Exit(1)
 		}
@@ -28,7 +28,7 @@ func queryAndPrintResults(stmt *pgsql.Statement) {
 			break
 		}
 
-		stropt, isNull, err := res.String(stroptOrd)
+		stropt, isNull, err := rs.String(stroptOrd)
 		if err != nil {
 			os.Exit(1)
 		}

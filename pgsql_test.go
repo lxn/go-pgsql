@@ -29,20 +29,20 @@ func withConn(t *testing.T, f func(conn *Conn)) {
 	f(conn)
 }
 
-func withSimpleQueryResultSet(t *testing.T, command string, f func(res *ResultSet)) {
+func withSimpleQueryResultSet(t *testing.T, command string, f func(rs *ResultSet)) {
 	withConn(t, func(conn *Conn) {
-		res, err := conn.Query(command)
+		rs, err := conn.Query(command)
 		if err != nil {
 			t.Error("withSimpleQueryResultSet: conn.Query:", err)
 			return
 		}
-		if res == nil {
-			t.Error("withSimpleQueryResultSet: conn.Query: res == nil")
+		if rs == nil {
+			t.Error("withSimpleQueryResultSet: conn.Query: rs == nil")
 			return
 		}
-		defer res.Close()
+		defer rs.Close()
 
-		f(res)
+		f(rs)
 	})
 }
 
@@ -63,20 +63,20 @@ func withStatement(t *testing.T, command string, params []*Parameter, f func(stm
 	})
 }
 
-func withStatementResultSet(t *testing.T, command string, params []*Parameter, f func(res *ResultSet)) {
+func withStatementResultSet(t *testing.T, command string, params []*Parameter, f func(rs *ResultSet)) {
 	withStatement(t, command, params, func(stmt *Statement) {
-		res, err := stmt.Query()
+		rs, err := stmt.Query()
 		if err != nil {
 			t.Error("withStatementResultSet: stmt.Query:", err)
 			return
 		}
-		if res == nil {
-			t.Error("withStatementResultSet: stmt.Query: res == nil")
+		if rs == nil {
+			t.Error("withStatementResultSet: stmt.Query: rs == nil")
 			return
 		}
-		defer res.Close()
+		defer rs.Close()
 
-		f(res)
+		f(rs)
 	})
 }
 
@@ -123,67 +123,67 @@ func Test_Connect_InvalidPassword_ExpectErrNotNil(t *testing.T) {
 }
 
 func Test_DoSimpleQueryResultSetTests(t *testing.T) {
-	tests := []func(res *ResultSet) (have, want interface{}, name string){
-		// Basic res tests
-		func(res *ResultSet) (have, want interface{}, name string) {
-			hasRow, _ := res.FetchNext()
+	tests := []func(rs *ResultSet) (have, want interface{}, name string){
+		// Basic rs tests
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			hasRow, _ := rs.FetchNext()
 			return hasRow, true, "FetchNext"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			hasRow, _ := res.FetchNext()
-			hasRow, _ = res.FetchNext()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			hasRow, _ := rs.FetchNext()
+			hasRow, _ = rs.FetchNext()
 			return hasRow, false, "FetchNext_RetValSecondCall"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			_, err := res.FetchNext()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			_, err := rs.FetchNext()
 			return err == nil, true, "FetchNext_ErrNil"
 		},
 
 		// Field info tests
-		func(res *ResultSet) (have, want interface{}, name string) {
-			fieldCount := res.FieldCount()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			fieldCount := rs.FieldCount()
 			return fieldCount, 5, "field count"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			fieldName, _ := res.Name(1)
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			fieldName, _ := rs.Name(1)
 			return fieldName, "_two", "field #1 name"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			typ, _ := res.Type(2)
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			typ, _ := rs.Type(2)
 			return typ, Boolean, "field #2 type"
 		},
 
 		// Get value tests
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.FetchNext()
-			val, _, _ := res.Int32(0)
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.FetchNext()
+			val, _, _ := rs.Int32(0)
 			return val, int32(1), "field #0"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.FetchNext()
-			val, _, _ := res.String(1)
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.FetchNext()
+			val, _, _ := rs.String(1)
 			return val, "two", "field #1"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.FetchNext()
-			val, _, _ := res.Bool(2)
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.FetchNext()
+			val, _, _ := rs.Bool(2)
 			return val, true, "field #2"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.FetchNext()
-			val, _ := res.IsNull(3)
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.FetchNext()
+			val, _ := rs.IsNull(3)
 			return val, true, "field #3 is null"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.FetchNext()
-			val, _, _ := res.Float64(4)
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.FetchNext()
+			val, _, _ := rs.Float64(4)
 			return val, float64(4.5), "field #4"
 		},
 	}
 
 	for _, test := range tests {
-		withSimpleQueryResultSet(t, "SELECT 1 AS _1, 'two' AS _two, true AS _true, null AS _null, 4.5 AS _4_5;", func(res *ResultSet) {
-			if have, want, name := test(res); have != want {
+		withSimpleQueryResultSet(t, "SELECT 1 AS _1, 'two' AS _two, true AS _true, null AS _null, 4.5 AS _4_5;", func(rs *ResultSet) {
+			if have, want, name := test(rs); have != want {
 				t.Errorf("%s failed - have: '%v', but want '%v'", name, have, want)
 			}
 		})
@@ -191,105 +191,105 @@ func Test_DoSimpleQueryResultSetTests(t *testing.T) {
 }
 
 func Test_SimpleQuery_MultipleSelects(t *testing.T) {
-	tests := []func(res *ResultSet) (have, want interface{}, name string){
+	tests := []func(rs *ResultSet) (have, want interface{}, name string){
 		// First result
-		func(res *ResultSet) (have, want interface{}, name string) {
-			hasRead, _ := res.FetchNext()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			hasRead, _ := rs.FetchNext()
 			return hasRead, true, "hasRead on first FetchNext (first result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			_, err := res.FetchNext()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			_, err := rs.FetchNext()
 			return err, nil, "err on first FetchNext (first result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.FetchNext()
-			hasRead, _ := res.FetchNext()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.FetchNext()
+			hasRead, _ := rs.FetchNext()
 			return hasRead, false, "hasRead on second FetchNext (first result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.FetchNext()
-			_, err := res.FetchNext()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.FetchNext()
+			_, err := rs.FetchNext()
 			return err, nil, "err on second FetchNext (first result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.FetchNext()
-			val, _, _ := res.Int(0)
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.FetchNext()
+			val, _, _ := rs.Int(0)
 			return val, 1, "value Int(0) (first result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.FetchNext()
-			_, isNull, _ := res.Int(0)
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.FetchNext()
+			_, isNull, _ := rs.Int(0)
 			return isNull, false, "isNull Int(0) (first result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.FetchNext()
-			_, _, err := res.Int(0)
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.FetchNext()
+			_, _, err := rs.Int(0)
 			return err, nil, "err Int(0) (first result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			hasResult, _ := res.NextResult()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			hasResult, _ := rs.NextResult()
 			return hasResult, true, "hasResult on NextResult (first result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			_, err := res.NextResult()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			_, err := rs.NextResult()
 			return err, nil, "err on NextResult (first result)"
 		},
 		// Second result
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.NextResult()
-			hasRead, _ := res.FetchNext()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.NextResult()
+			hasRead, _ := rs.FetchNext()
 			return hasRead, true, "hasRead on first FetchNext (second result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.NextResult()
-			_, err := res.FetchNext()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.NextResult()
+			_, err := rs.FetchNext()
 			return err, nil, "err on first FetchNext (second result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.NextResult()
-			res.FetchNext()
-			hasRead, _ := res.FetchNext()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.NextResult()
+			rs.FetchNext()
+			hasRead, _ := rs.FetchNext()
 			return hasRead, false, "hasRead on second FetchNext (second result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.NextResult()
-			res.FetchNext()
-			_, err := res.FetchNext()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.NextResult()
+			rs.FetchNext()
+			_, err := rs.FetchNext()
 			return err, nil, "err on second FetchNext (second result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.NextResult()
-			res.FetchNext()
-			val, _, _ := res.String(0)
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.NextResult()
+			rs.FetchNext()
+			val, _, _ := rs.String(0)
 			return val, "two", "value String(0) (second result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.NextResult()
-			res.FetchNext()
-			_, isNull, _ := res.String(0)
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.NextResult()
+			rs.FetchNext()
+			_, isNull, _ := rs.String(0)
 			return isNull, false, "isNull String(0) (second result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.NextResult()
-			res.FetchNext()
-			_, _, err := res.String(0)
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.NextResult()
+			rs.FetchNext()
+			_, _, err := rs.String(0)
 			return err, nil, "err String(0) (second result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.NextResult()
-			hasResult, _ := res.NextResult()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.NextResult()
+			hasResult, _ := rs.NextResult()
 			return hasResult, false, "hasResult on NextResult (second result)"
 		},
-		func(res *ResultSet) (have, want interface{}, name string) {
-			res.NextResult()
-			_, err := res.NextResult()
+		func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.NextResult()
+			_, err := rs.NextResult()
 			return err, nil, "err on NextResult (second result)"
 		},
 	}
 
 	for _, test := range tests {
-		withSimpleQueryResultSet(t, "SELECT 1 AS _1; SELECT 'two' AS _two;", func(res *ResultSet) {
-			if have, want, name := test(res); have != want {
+		withSimpleQueryResultSet(t, "SELECT 1 AS _1; SELECT 'two' AS _two;", func(rs *ResultSet) {
+			if have, want, name := test(rs); have != want {
 				t.Errorf("%s failed - have: '%v', but want '%v'", name, have, want)
 			}
 		})
@@ -314,10 +314,10 @@ func Test_Statement_ActualCommand(t *testing.T) {
 type statementResultSetTest struct {
 	command string
 	params  []*Parameter
-	fun     func(res *ResultSet) (have, want interface{}, name string)
+	fun     func(rs *ResultSet) (have, want interface{}, name string)
 }
 
-func whereIdEquals2StatementResultSetTest(fun func(res *ResultSet) (have, want interface{}, name string)) *statementResultSetTest {
+func whereIdEquals2StatementResultSetTest(fun func(rs *ResultSet) (have, want interface{}, name string)) *statementResultSetTest {
 	return &statementResultSetTest{
 		command: "SELECT id FROM table1 WHERE id = @id;",
 		params:  []*Parameter{idParameter(2)},
@@ -327,34 +327,34 @@ func whereIdEquals2StatementResultSetTest(fun func(res *ResultSet) (have, want i
 
 func Test_DoStatementResultSetTests(t *testing.T) {
 	tests := []*statementResultSetTest{
-		whereIdEquals2StatementResultSetTest(func(res *ResultSet) (have, want interface{}, name string) {
-			hasRead, _ := res.FetchNext()
-			return hasRead, true, "WHERE id = 2 - 'hasRead, _ := res.FetchNext()'"
+		whereIdEquals2StatementResultSetTest(func(rs *ResultSet) (have, want interface{}, name string) {
+			hasRead, _ := rs.FetchNext()
+			return hasRead, true, "WHERE id = 2 - 'hasRead, _ := rs.FetchNext()'"
 		}),
-		whereIdEquals2StatementResultSetTest(func(res *ResultSet) (have, want interface{}, name string) {
-			_, err := res.FetchNext()
-			return err, nil, "WHERE id = 2 - '_, err := res.FetchNext()'"
+		whereIdEquals2StatementResultSetTest(func(rs *ResultSet) (have, want interface{}, name string) {
+			_, err := rs.FetchNext()
+			return err, nil, "WHERE id = 2 - '_, err := rs.FetchNext()'"
 		}),
-		whereIdEquals2StatementResultSetTest(func(res *ResultSet) (have, want interface{}, name string) {
-			res.FetchNext()
-			val, _, _ := res.Int32(0)
-			return val, int32(2), "WHERE id = 2 - 'val, _, _ := res.Int32(0)'"
+		whereIdEquals2StatementResultSetTest(func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.FetchNext()
+			val, _, _ := rs.Int32(0)
+			return val, int32(2), "WHERE id = 2 - 'val, _, _ := rs.Int32(0)'"
 		}),
-		whereIdEquals2StatementResultSetTest(func(res *ResultSet) (have, want interface{}, name string) {
-			res.FetchNext()
-			_, isNull, _ := res.Int32(0)
-			return isNull, false, "WHERE id = 2 - '_, isNull, _ := res.Int32(0)'"
+		whereIdEquals2StatementResultSetTest(func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.FetchNext()
+			_, isNull, _ := rs.Int32(0)
+			return isNull, false, "WHERE id = 2 - '_, isNull, _ := rs.Int32(0)'"
 		}),
-		whereIdEquals2StatementResultSetTest(func(res *ResultSet) (have, want interface{}, name string) {
-			res.FetchNext()
-			_, _, err := res.Int32(0)
-			return err, nil, "WHERE id = 2 - '_, _, err := res.Int32(0)'"
+		whereIdEquals2StatementResultSetTest(func(rs *ResultSet) (have, want interface{}, name string) {
+			rs.FetchNext()
+			_, _, err := rs.Int32(0)
+			return err, nil, "WHERE id = 2 - '_, _, err := rs.Int32(0)'"
 		}),
 	}
 
 	for _, test := range tests {
-		withStatementResultSet(t, test.command, test.params, func(res *ResultSet) {
-			if have, want, name := test.fun(res); have != want {
+		withStatementResultSet(t, test.command, test.params, func(rs *ResultSet) {
+			if have, want, name := test.fun(rs); have != want {
 				t.Errorf("%s failed - have: '%v', but want '%v'", name, have, want)
 			}
 		})
@@ -776,11 +776,11 @@ func Test_Numeric(t *testing.T) {
 	numWant, _ := big.NewRat(1, 1).SetString(strWant)
 	numParam := param("@num", Numeric, numWant)
 
-	withStatementResultSet(t, "SELECT @num;", []*Parameter{numParam}, func(res *ResultSet) {
+	withStatementResultSet(t, "SELECT @num;", []*Parameter{numParam}, func(rs *ResultSet) {
 		// Use interface{}, so *resultSet.Any will be tested as well.
 		var numHaveInterface interface{}
 
-		_, err := res.ScanNext(&numHaveInterface)
+		_, err := rs.ScanNext(&numHaveInterface)
 		if err != nil {
 			t.Error("failed to scan next:", err)
 		}
@@ -801,10 +801,10 @@ func Test_Numeric(t *testing.T) {
 func Test_FloatNaN(t *testing.T) {
 	numParam := param("@num", Double, math.NaN())
 
-	withStatementResultSet(t, "SELECT @num;", []*Parameter{numParam}, func(res *ResultSet) {
+	withStatementResultSet(t, "SELECT @num;", []*Parameter{numParam}, func(rs *ResultSet) {
 		var numHave float64
 
-		_, err := res.ScanNext(&numHave)
+		_, err := rs.ScanNext(&numHave)
 		if err != nil {
 			t.Error("failed to scan next:", err)
 		}

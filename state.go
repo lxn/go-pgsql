@@ -12,7 +12,7 @@ type state interface {
 	code() ConnStatus
 
 	// execute sends Bind and Execute packets to the server.
-	execute(stmt *Statement, res *ResultSet)
+	execute(stmt *Statement, rs *ResultSet)
 
 	// flush sends a Flush packet to the server.
 	flush(conn *Conn)
@@ -21,7 +21,7 @@ type state interface {
 	prepare(stmt *Statement)
 
 	// query sends a Query packet to the server.
-	query(conn *Conn, res *ResultSet, sql string)
+	query(conn *Conn, rs *ResultSet, sql string)
 }
 
 
@@ -29,7 +29,7 @@ type state interface {
 // the state interface without implementing all state methods itself.
 type abstractState struct{}
 
-func (abstractState) execute(stmt *Statement, res *ResultSet) {
+func (abstractState) execute(stmt *Statement, rs *ResultSet) {
 	panic(invalidOpForStateMsg)
 }
 
@@ -41,7 +41,7 @@ func (abstractState) prepare(stmt *Statement) {
 	panic(invalidOpForStateMsg)
 }
 
-func (abstractState) query(conn *Conn, res *ResultSet, sql string) {
+func (abstractState) query(conn *Conn, rs *ResultSet, sql string) {
 	panic(invalidOpForStateMsg)
 }
 
@@ -77,7 +77,7 @@ func (readyState) code() ConnStatus {
 	return StatusReady
 }
 
-func (readyState) execute(stmt *Statement, res *ResultSet) {
+func (readyState) execute(stmt *Statement, rs *ResultSet) {
 	conn := stmt.conn
 
 	if conn.LogLevel >= LogDebug {
@@ -86,11 +86,11 @@ func (readyState) execute(stmt *Statement, res *ResultSet) {
 
 	conn.writeBind(stmt)
 
-	conn.readBackendMessages(res)
+	conn.readBackendMessages(rs)
 
 	conn.writeDescribe(stmt)
 
-	conn.readBackendMessages(res)
+	conn.readBackendMessages(rs)
 
 	conn.writeExecute(stmt)
 
@@ -114,14 +114,14 @@ func (readyState) prepare(stmt *Statement) {
 	conn.readBackendMessages(nil)
 }
 
-func (readyState) query(conn *Conn, res *ResultSet, command string) {
+func (readyState) query(conn *Conn, rs *ResultSet, command string) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("readyState.query"))
 	}
 
 	conn.writeQuery(command)
 
-	conn.readBackendMessages(res)
+	conn.readBackendMessages(rs)
 
 	conn.state = processingQueryState{}
 }

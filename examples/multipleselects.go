@@ -17,22 +17,22 @@ func main() {
 	}
 	defer conn.Close()
 
-	res, err := conn.Query("SELECT 1 AS num; SELECT 2 AS num; SELECT 3 AS num;")
+	rs, err := conn.Query("SELECT 1 AS num; SELECT 2 AS num; SELECT 3 AS num;")
 	if err != nil {
 		os.Exit(1)
 	}
-	defer res.Close()
+	defer rs.Close()
 
 	for {
-		hasRow, err := res.FetchNext()
+		hasRow, err := rs.FetchNext()
 		if err != nil {
 			os.Exit(1)
 		}
 		if hasRow {
-			num, _, _ := res.Int(0)
+			num, _, _ := rs.Int(0)
 			fmt.Println("num:", num)
 		} else {
-			hasResult, err := res.NextResult()
+			hasResult, err := rs.NextResult()
 			if err != nil {
 				os.Exit(1)
 			}

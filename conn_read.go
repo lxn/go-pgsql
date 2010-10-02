@@ -154,7 +154,7 @@ func (conn *Conn) readCloseComplete() {
 	conn.readInt32()
 }
 
-func (conn *Conn) readCommandComplete(res *ResultSet) {
+func (conn *Conn) readCommandComplete(rs *ResultSet) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.readCommandComplete"))
 	}
@@ -165,15 +165,15 @@ func (conn *Conn) readCommandComplete(res *ResultSet) {
 	// Retrieve the number of affected rows from the command tag.
 	tag := conn.readString()
 
-	if res != nil {
+	if rs != nil {
 		parts := strings.Split(tag, " ", -1)
 
-		res.rowsAffected, _ = strconv.Atoi64(parts[len(parts)-1])
-		res.currentResultComplete = true
+		rs.rowsAffected, _ = strconv.Atoi64(parts[len(parts)-1])
+		rs.currentResultComplete = true
 	}
 }
 
-func (conn *Conn) readDataRow(res *ResultSet) {
+func (conn *Conn) readDataRow(rs *ResultSet) {
 	// Just eat message length.
 	conn.readInt32()
 
@@ -192,7 +192,7 @@ func (conn *Conn) readDataRow(res *ResultSet) {
 			conn.read(val)
 		}
 
-		res.values[ord] = val
+		rs.values[ord] = val
 	}
 }
 
@@ -317,7 +317,7 @@ func (conn *Conn) readParseComplete() {
 	conn.readInt32()
 }
 
-func (conn *Conn) readReadyForQuery(res *ResultSet) {
+func (conn *Conn) readReadyForQuery(rs *ResultSet) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.readReadyForQuery"))
 	}
@@ -333,25 +333,25 @@ func (conn *Conn) readReadyForQuery(res *ResultSet) {
 
 	conn.transactionStatus = TransactionStatus(txStatus)
 
-	if res != nil {
-		res.allResultsComplete = true
+	if rs != nil {
+		rs.allResultsComplete = true
 	}
 
 	conn.state = readyState{}
 }
 
-func (conn *Conn) readRowDescription(res *ResultSet) {
+func (conn *Conn) readRowDescription(rs *ResultSet) {
 	// Just eat message length.
 	conn.readInt32()
 
 	fieldCount := conn.readInt16()
 
-	res.fields = make([]field, fieldCount)
-	res.values = make([][]byte, fieldCount)
+	rs.fields = make([]field, fieldCount)
+	rs.values = make([][]byte, fieldCount)
 
 	var ord int16
 	for ord = 0; ord < fieldCount; ord++ {
-		res.fields[ord].name = conn.readString()
+		rs.fields[ord].name = conn.readString()
 
 		// Just eat table OID.
 		conn.readInt32()
@@ -359,7 +359,7 @@ func (conn *Conn) readRowDescription(res *ResultSet) {
 		// Just eat field OID.
 		conn.readInt16()
 
-		res.fields[ord].typeOID = conn.readInt32()
+		rs.fields[ord].typeOID = conn.readInt32()
 
 		// Just eat field size.
 		conn.readInt16()
@@ -374,11 +374,11 @@ func (conn *Conn) readRowDescription(res *ResultSet) {
 		default:
 			panic("unsupported field format")
 		}
-		res.fields[ord].format = format
+		rs.fields[ord].format = format
 	}
 }
 
-func (conn *Conn) readBackendMessages(res *ResultSet) {
+func (conn *Conn) readBackendMessages(rs *ResultSet) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.readBackendMessages"))
 	}
@@ -405,11 +405,11 @@ func (conn *Conn) readBackendMessages(res *ResultSet) {
 			conn.readCloseComplete()
 
 		case _CommandComplete:
-			conn.readCommandComplete(res)
+			conn.readCommandComplete(rs)
 			return
 
 		case _DataRow:
-			res.readRow()
+			rs.readRow()
 			return
 
 		case _EmptyQueryResponse:
@@ -433,11 +433,11 @@ func (conn *Conn) readBackendMessages(res *ResultSet) {
 			return
 
 		case _ReadyForQuery:
-			conn.readReadyForQuery(res)
+			conn.readReadyForQuery(rs)
 			return
 
 		case _RowDescription:
-			res.initializeResult()
+			rs.initializeResult()
 			return
 		}
 	}
