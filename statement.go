@@ -221,7 +221,7 @@ func (stmt *Statement) query() (rs *ResultSet) {
 	conn := stmt.conn
 
 	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Statement.Query"))
+		defer conn.logExit(conn.logEnter("*Statement.query"))
 	}
 
 	if conn.LogLevel >= LogCommand {

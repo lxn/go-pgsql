@@ -152,6 +152,16 @@ func (rs *ResultSet) FetchNext() (hasRow bool, err os.Error) {
 		hasRow = rs.fetchNext()
 	})
 
+	if err != nil && !rs.hasCurrentRow {
+		if _, ok := err.(*Error); ok {
+			// This is likely an exception raised by a user defined PostgreSQL
+			// function.
+			// FIXME: Not sure if this handling is sane.
+			rs.currentResultComplete = true
+			rs.allResultsComplete = true
+		}
+	}
+
 	return
 }
 

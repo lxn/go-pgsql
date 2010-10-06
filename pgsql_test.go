@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-func withConn(t *testing.T, f func(conn *Conn)) {
-	conn, err := Connect("dbname=testdatabase user=testuser password=testpassword", LogNothing)
+func withConnLog(t *testing.T, logLevel LogLevel, f func(conn *Conn)) {
+	conn, err := Connect("dbname=testdatabase user=testuser password=testpassword", logLevel)
 	if err != nil {
 		t.Error("withConn: Connect:", err)
 		return
@@ -27,6 +27,10 @@ func withConn(t *testing.T, f func(conn *Conn)) {
 	defer conn.Close()
 
 	f(conn)
+}
+
+func withConn(t *testing.T, f func(conn *Conn)) {
+	withConnLog(t, LogNothing, f)
 }
 
 func withSimpleQueryResultSet(t *testing.T, command string, f func(rs *ResultSet)) {
@@ -826,4 +830,54 @@ func Test_Parameter_SetValue_NilPtr_ValueReturnsNil(t *testing.T) {
 	if p.Value() != nil {
 		t.Fail()
 	}
+}
+
+// This test hung when using no timeout before *ResultSet.FetchNext was fixed.
+func Test_Query_Exception(t *testing.T) {
+	withConn(t, func(conn *Conn) {
+		conn.Execute("CREATE LANGUAGE plpgsql;")
+
+		_, err := conn.Execute(`
+			CREATE OR REPLACE FUNCTION one_or_fail(num int) RETURNS int AS $$
+			BEGIN
+				IF num != 1 THEN
+					RAISE EXCEPTION 'FAIL!';
+				END IF;
+				
+				RETURN 1;
+			END;
+			$$ LANGUAGE plpgsql;
+			`)
+		if err != nil {
+			t.Error("create function failed:", err)
+			return
+		}
+		defer func() {
+			conn.Execute("DROP FUNCTION one_or_fail(int);")
+		}()
+
+		rs, err := conn.Query("SELECT one_or_fail(2);")
+		if err != nil {
+			t.Error("query failed")
+			return
+		}
+		defer rs.Close()
+
+		_, err = rs.FetchNext()
+		if err == nil {
+			t.Error("error expected")
+			return
+		}
+		if _, ok := err.(*Error); !ok {
+			t.Error("*pgsql.Error expected")
+			return
+		}
+		rs.Close()
+
+		var abc string
+		_, err = conn.Scan("SELECT 'abc';", &abc)
+		if err != nil {
+			t.Error("scan failed after previous error")
+		}
+	})
 }
