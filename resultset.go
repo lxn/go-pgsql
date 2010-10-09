@@ -256,8 +256,8 @@ func (rs *ResultSet) Type(ord int) (typ Type, err os.Error) {
 
 	switch typ := rs.fields[ord].typeOID; typ {
 	case _BOOLOID, _CHAROID, _DATEOID, _FLOAT4OID, _FLOAT8OID, _INT2OID,
-		_INT4OID, _INT8OID, _TEXTOID, _TIMEOID, _TIMETZOID, _TIMESTAMPOID,
-		_TIMESTAMPTZOID, _VARCHAROID:
+		_INT4OID, _INT8OID, _NUMERICOID, _TEXTOID, _TIMEOID, _TIMETZOID,
+		_TIMESTAMPOID, _TIMESTAMPTZOID, _VARCHAROID:
 		return Type(typ), nil
 	}
 
