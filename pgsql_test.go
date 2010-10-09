@@ -893,6 +893,43 @@ func Test_Query_Exception(t *testing.T) {
 		}
 		rs.Close()
 
+		stmt, err := conn.Prepare("SELECT one_or_fail(2);")
+		if err != nil {
+			t.Error("prepare failed")
+			return
+		}
+		defer stmt.Close()
+
+		_, err = stmt.Execute()
+		if err == nil {
+			t.Error("error expected")
+			return
+		}
+		if _, ok := err.(*Error); !ok {
+			t.Error("*pgsql.Error expected")
+			return
+		}
+
+		_, err = stmt.Scan(&one)
+		if err == nil {
+			t.Error("error expected")
+			return
+		}
+		if _, ok := err.(*Error); !ok {
+			t.Error("*pgsql.Error expected")
+			return
+		}
+
+		_, err = conn.Execute("SELECT one_or_fail(2);")
+		if err == nil {
+			t.Error("error expected")
+			return
+		}
+		if _, ok := err.(*Error); !ok {
+			t.Error("*pgsql.Error expected")
+			return
+		}
+
 		_, err = conn.Scan("SELECT one_or_fail(2);", &one)
 		if err == nil {
 			t.Error("error expected")

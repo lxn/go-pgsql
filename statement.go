@@ -288,7 +288,7 @@ func (stmt *Statement) Execute() (rowsAffected int64, err os.Error) {
 	return
 }
 
-func (stmt *Statement) scan(args ...interface{}) bool {
+func (stmt *Statement) scan(args ...interface{}) (*ResultSet, bool) {
 	conn := stmt.conn
 
 	if conn.LogLevel >= LogDebug {
@@ -296,9 +296,8 @@ func (stmt *Statement) scan(args ...interface{}) bool {
 	}
 
 	rs := stmt.query()
-	defer rs.Close()
 
-	return rs.scanNext(args...)
+	return rs, rs.scanNext(args...)
 }
 
 // Scan executes the statement and scans the fields of the first row
@@ -307,7 +306,9 @@ func (stmt *Statement) scan(args ...interface{}) bool {
 // been fetched, fetched will be true, otherwise false.
 func (stmt *Statement) Scan(args ...interface{}) (fetched bool, err os.Error) {
 	err = stmt.conn.withRecover("*Statement.Scan", func() {
-		fetched = stmt.scan(args...)
+		var rs *ResultSet
+		rs, fetched = stmt.scan(args...)
+		rs.close()
 	})
 
 	return
