@@ -16,11 +16,14 @@ var quoteRegExp = regexp.MustCompile("['][^']*[']")
 // Statement is a means to efficiently execute a parameterized SQL command multiple times.
 // Call *Conn.Prepare to create a new prepared Statement.
 type Statement struct {
-	conn                                     *Conn
-	name, portalName, command, actualCommand string
-	isClosed                                 bool
-	params                                   []*Parameter
-	name2param                               map[string]*Parameter
+	conn          *Conn
+	name          string
+	portalName    string
+	command       string
+	actualCommand string
+	isClosed      bool
+	params        []*Parameter
+	name2param    map[string]*Parameter
 }
 
 func replaceParameterNameInSubstring(s, old, new string, buf *bytes.Buffer, paramRegExp *regexp.Regexp) {
