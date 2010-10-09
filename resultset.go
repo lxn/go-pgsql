@@ -229,39 +229,28 @@ func (rs *ResultSet) FieldCount() int {
 
 // Name returns the name of the field with the specified ordinal.
 func (rs *ResultSet) Name(ord int) (name string, err os.Error) {
-	if rs.conn.LogLevel >= LogVerbose {
-		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.Name"))
-	}
+	err = rs.conn.withRecover("*ResultSet.Name", func() {
+		name = rs.fields[ord].name
+	})
 
-	defer func() {
-		if x := recover(); x != nil {
-			err = rs.conn.logAndConvertPanic(x)
-		}
-	}()
-
-	return rs.fields[ord].name, nil
+	return
 }
 
 // Type returns the PostgreSQL type of the field with the specified ordinal.
 func (rs *ResultSet) Type(ord int) (typ Type, err os.Error) {
-	if rs.conn.LogLevel >= LogVerbose {
-		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.Type"))
-	}
-
-	defer func() {
-		if x := recover(); x != nil {
-			err = rs.conn.logAndConvertPanic(x)
+	err = rs.conn.withRecover("*ResultSet.Type", func() {
+		switch t := rs.fields[ord].typeOID; t {
+		case _BOOLOID, _CHAROID, _DATEOID, _FLOAT4OID, _FLOAT8OID, _INT2OID,
+			_INT4OID, _INT8OID, _NUMERICOID, _TEXTOID, _TIMEOID, _TIMETZOID,
+			_TIMESTAMPOID, _TIMESTAMPTZOID, _VARCHAROID:
+			typ = Type(t)
+			return
 		}
-	}()
 
-	switch typ := rs.fields[ord].typeOID; typ {
-	case _BOOLOID, _CHAROID, _DATEOID, _FLOAT4OID, _FLOAT8OID, _INT2OID,
-		_INT4OID, _INT8OID, _NUMERICOID, _TEXTOID, _TIMEOID, _TIMETZOID,
-		_TIMESTAMPOID, _TIMESTAMPTZOID, _VARCHAROID:
-		return Type(typ), nil
-	}
+		typ = Custom
+	})
 
-	return Custom, nil
+	return
 }
 
 // Ordinal returns the 0-based ordinal position of the field with the

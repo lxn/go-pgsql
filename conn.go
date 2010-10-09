@@ -305,29 +305,19 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {
 
 // Close closes the connection to the database.
 func (conn *Conn) Close() (err os.Error) {
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.Close"))
-	}
-
-	defer func() {
-		if x := recover(); x != nil {
-			err = conn.logAndConvertPanic(x)
+	return conn.withRecover("*Conn.Close", func() {
+		if conn.Status() == StatusDisconnected {
+			err = os.NewError("connection already closed")
+			conn.logError(LogWarning, err)
+			return
 		}
-	}()
 
-	if conn.Status() == StatusDisconnected {
-		err = os.NewError("connection already closed")
-		conn.logError(LogWarning, err)
-		return
-	}
+		conn.writeTerminate()
 
-	conn.writeTerminate()
+		panicIfErr(conn.tcpConn.Close())
 
-	panicIfErr(conn.tcpConn.Close())
-
-	conn.state = disconnectedState{}
-
-	return
+		conn.state = disconnectedState{}
+	})
 }
 
 func (conn *Conn) execute(command string, params ...*Parameter) int64 {
