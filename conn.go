@@ -433,15 +433,14 @@ func (conn *Conn) RuntimeParameter(name string) (value string, ok bool) {
 	return
 }
 
-func (conn *Conn) scan(command string, args ...interface{}) bool {
+func (conn *Conn) scan(command string, args ...interface{}) (*ResultSet, bool) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.scan"))
 	}
 
 	rs := conn.query(command)
-	defer rs.close()
 
-	return rs.scanNext(args...)
+	return rs, rs.scanNext(args...)
 }
 
 // Scan executes the command and scans the fields of the first row
@@ -450,7 +449,9 @@ func (conn *Conn) scan(command string, args ...interface{}) bool {
 // been fetched, fetched will be true, otherwise false.
 func (conn *Conn) Scan(command string, args ...interface{}) (fetched bool, err os.Error) {
 	err = conn.withRecover("*Conn.Scan", func() {
-		fetched = conn.scan(command, args...)
+		var rs *ResultSet
+		rs, fetched = conn.scan(command, args...)
+		rs.close()
 	})
 
 	return

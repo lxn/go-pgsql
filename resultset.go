@@ -145,13 +145,7 @@ func (rs *ResultSet) fetchNext() bool {
 	return !rs.currentResultComplete
 }
 
-// FetchNext reads the next row, if there is one.
-// In this case true is returned, otherwise false.
-func (rs *ResultSet) FetchNext() (hasRow bool, err os.Error) {
-	err = rs.conn.withRecover("*ResultSet.FetchNext", func() {
-		hasRow = rs.fetchNext()
-	})
-
+func (rs *ResultSet) setCompletedOnPgsqlError(err os.Error) {
 	if err != nil && !rs.hasCurrentRow {
 		if _, ok := err.(*Error); ok {
 			// This is likely an exception raised by a user defined PostgreSQL
@@ -161,6 +155,16 @@ func (rs *ResultSet) FetchNext() (hasRow bool, err os.Error) {
 			rs.allResultsComplete = true
 		}
 	}
+}
+
+// FetchNext reads the next row, if there is one.
+// In this case true is returned, otherwise false.
+func (rs *ResultSet) FetchNext() (hasRow bool, err os.Error) {
+	err = rs.conn.withRecover("*ResultSet.FetchNext", func() {
+		hasRow = rs.fetchNext()
+	})
+
+	rs.setCompletedOnPgsqlError(err)
 
 	return
 }
@@ -935,6 +939,8 @@ func (rs *ResultSet) ScanNext(args ...interface{}) (fetched bool, err os.Error) 
 	err = rs.conn.withRecover("*ResultSet.ScanNext", func() {
 		fetched = rs.scanNext(args...)
 	})
+
+	rs.setCompletedOnPgsqlError(err)
 
 	return
 }

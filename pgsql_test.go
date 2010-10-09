@@ -874,10 +874,40 @@ func Test_Query_Exception(t *testing.T) {
 		}
 		rs.Close()
 
+		rs, err = conn.Query("SELECT one_or_fail(2);")
+		if err != nil {
+			t.Error("query failed")
+			return
+		}
+		defer rs.Close()
+
+		var one int
+		_, err = rs.ScanNext(&one)
+		if err == nil {
+			t.Error("error expected")
+			return
+		}
+		if _, ok := err.(*Error); !ok {
+			t.Error("*pgsql.Error expected")
+			return
+		}
+		rs.Close()
+
+		_, err = conn.Scan("SELECT one_or_fail(2);", &one)
+		if err == nil {
+			t.Error("error expected")
+			return
+		}
+		if _, ok := err.(*Error); !ok {
+			t.Error("*pgsql.Error expected")
+			return
+		}
+
 		var abc string
 		_, err = conn.Scan("SELECT 'abc';", &abc)
 		if err != nil {
-			t.Error("scan failed after previous error")
+			t.Error("*Conn.Scan failed after previous expected *Conn.Scan error")
+			return
 		}
 	})
 }
