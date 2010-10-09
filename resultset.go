@@ -29,6 +29,7 @@ type field struct {
 
 // ResultSet reads the results of a query, row by row, and provides methods to
 // retrieve field values of the current row.
+//
 // Access is by 0-based field ordinal position.
 type ResultSet struct {
 	conn                  *Conn
@@ -120,6 +121,7 @@ func (rs *ResultSet) nextResult() bool {
 }
 
 // NextResult moves the ResultSet to the next result, if there is one.
+//
 // In this case true is returned, otherwise false.
 // Statements support a single result only, use *Conn.Query if you need
 // this functionality.
@@ -158,6 +160,7 @@ func (rs *ResultSet) setCompletedOnPgsqlError(err os.Error) {
 }
 
 // FetchNext reads the next row, if there is one.
+//
 // In this case true is returned, otherwise false.
 func (rs *ResultSet) FetchNext() (hasRow bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.FetchNext", func() {
@@ -899,8 +902,9 @@ func (rs *ResultSet) scan(args ...interface{}) {
 }
 
 // Scan scans the fields of the current row in the ResultSet, trying
-// to store field values into the specified arguments. The arguments
-// must be of pointer types.
+// to store field values into the specified arguments.
+//
+// The arguments must be of pointer types.
 func (rs *ResultSet) Scan(args ...interface{}) (err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.Scan", func() {
 		rs.scan(args...)
@@ -921,9 +925,10 @@ func (rs *ResultSet) scanNext(args ...interface{}) (fetched bool) {
 }
 
 // ScanNext scans the fields of the next row in the ResultSet, trying
-// to store field values into the specified arguments. The arguments
-// must be of pointer types. If a row has been fetched, fetched will
-// be true, otherwise false.
+// to store field values into the specified arguments.
+//
+// The arguments must be of pointer types. If a row has been fetched, fetched
+// will be true, otherwise false.
 func (rs *ResultSet) ScanNext(args ...interface{}) (fetched bool, err os.Error) {
 	err = rs.conn.withRecover("*ResultSet.ScanNext", func() {
 		fetched = rs.scanNext(args...)

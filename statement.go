@@ -14,6 +14,7 @@ import (
 var quoteRegExp = regexp.MustCompile("['][^']*[']")
 
 // Statement is a means to efficiently execute a parameterized SQL command multiple times.
+//
 // Call *Conn.Prepare to create a new prepared Statement.
 type Statement struct {
 	conn          *Conn
@@ -195,6 +196,7 @@ func (stmt *Statement) Close() (err os.Error) {
 }
 
 // ActualCommand returns the actual command text that is sent to the server.
+//
 // The original command is automatically adjusted if it contains parameters so
 // it complies with what PostgreSQL expects. Refer to the return value of this
 // method to make sense of the position information contained in many error
@@ -257,6 +259,7 @@ func (stmt *Statement) query() (rs *ResultSet) {
 
 // Query executes the Statement and returns a
 // ResultSet for row-by-row retrieval of the results.
+//
 // The returned ResultSet must be closed before sending another
 // query or command to the server over the same connection.
 func (stmt *Statement) Query() (rs *ResultSet, err os.Error) {
@@ -281,7 +284,9 @@ func (stmt *Statement) execute() (rowsAffected int64) {
 }
 
 // Execute executes the Statement and returns the number
-// of rows affected. If the results of a query are needed, use the
+// of rows affected.
+//
+// If the results of a query are needed, use the
 // Query method instead.
 func (stmt *Statement) Execute() (rowsAffected int64, err os.Error) {
 	err = stmt.conn.withRecover("*Statement.Execute", func() {
@@ -305,7 +310,9 @@ func (stmt *Statement) scan(args ...interface{}) (*ResultSet, bool) {
 
 // Scan executes the statement and scans the fields of the first row
 // in the ResultSet, trying to store field values into the specified
-// arguments. The arguments must be of pointer types. If a row has
+// arguments.
+//
+// The arguments must be of pointer types. If a row has
 // been fetched, fetched will be true, otherwise false.
 func (stmt *Statement) Scan(args ...interface{}) (fetched bool, err os.Error) {
 	err = stmt.conn.withRecover("*Statement.Scan", func() {

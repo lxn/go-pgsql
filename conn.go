@@ -332,7 +332,9 @@ func (conn *Conn) execute(command string, params ...*Parameter) int64 {
 }
 
 // Execute sends a SQL command to the server and returns the number
-// of rows affected. If the results of a query are needed, use the
+// of rows affected.
+//
+// If the results of a query are needed, use the
 // Query method instead.
 func (conn *Conn) Execute(command string, params ...*Parameter) (rowsAffected int64, err os.Error) {
 	err = conn.withRecover("*Conn.Execute", func() {
@@ -402,6 +404,7 @@ func (conn *Conn) query(command string, params ...*Parameter) (rs *ResultSet) {
 
 // Query sends a SQL query to the server and returns a
 // ResultSet for row-by-row retrieval of the results.
+//
 // The returned ResultSet must be closed before sending another
 // query or command to the server over the same connection.
 func (conn *Conn) Query(command string, params ...*Parameter) (rs *ResultSet, err os.Error) {
@@ -413,6 +416,7 @@ func (conn *Conn) Query(command string, params ...*Parameter) (rs *ResultSet, er
 }
 
 // RuntimeParameter returns the value of the specified runtime parameter.
+//
 // If the value was successfully retrieved, ok is true, otherwise false.
 func (conn *Conn) RuntimeParameter(name string) (value string, ok bool) {
 	if conn.LogLevel >= LogVerbose {
@@ -435,7 +439,9 @@ func (conn *Conn) scan(command string, args ...interface{}) (*ResultSet, bool) {
 
 // Scan executes the command and scans the fields of the first row
 // in the ResultSet, trying to store field values into the specified
-// arguments. The arguments must be of pointer types. If a row has
+// arguments.
+//
+// The arguments must be of pointer types. If a row has
 // been fetched, fetched will be true, otherwise false.
 func (conn *Conn) Scan(command string, args ...interface{}) (fetched bool, err os.Error) {
 	err = conn.withRecover("*Conn.Scan", func() {
@@ -458,7 +464,9 @@ func (conn *Conn) TransactionStatus() TransactionStatus {
 }
 
 // WithTransaction starts a new transaction, if none is in progress, then
-// calls f. If f returns an error or panicks, the transaction is rolled back,
+// calls f.
+//
+// If f returns an error or panicks, the transaction is rolled back,
 // otherwise it is committed. If the connection is in a failed transaction when
 // calling WithTransaction, this function immediately returns with an error,
 // without calling f. In case of an active transaction without error,
@@ -506,7 +514,9 @@ func (conn *Conn) WithTransaction(isolation IsolationLevel, f func() os.Error) (
 }
 
 // WithSavepoint creates a transaction savepoint, if the connection is in an
-// active transaction without errors, then calls f. If f returns an error or
+// active transaction without errors, then calls f.
+//
+// If f returns an error or
 // panicks, the transaction is rolled back to the savepoint. If the connection
 // is in a failed transaction when calling WithSavepoint, this function
 // immediately returns with an error, without calling f. If no transaction is in
