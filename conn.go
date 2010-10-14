@@ -344,9 +344,9 @@ func (conn *Conn) Execute(command string, params ...*Parameter) (rowsAffected in
 	return
 }
 
-func (conn *Conn) prepareSlice(command string, params []*Parameter) *Statement {
+func (conn *Conn) prepare(command string, params ...*Parameter) *Statement {
 	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.prepareSlice"))
+		defer conn.logExit(conn.logEnter("*Conn.prepare"))
 	}
 
 	stmt := newStatement(conn, command, params)
@@ -356,28 +356,14 @@ func (conn *Conn) prepareSlice(command string, params []*Parameter) *Statement {
 	return stmt
 }
 
-// PrepareSlice returns a new prepared Statement, optimized to be executed multiple
-// times with different parameter values.
-func (conn *Conn) PrepareSlice(command string, params []*Parameter) (stmt *Statement, err os.Error) {
-	err = conn.withRecover("*Conn.PrepareSlice", func() {
-		stmt = conn.prepareSlice(command, params)
-	})
-
-	return
-}
-
-func (conn *Conn) prepare(command string, params ...*Parameter) *Statement {
-	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.prepare"))
-	}
-
-	return conn.prepareSlice(command, params)
-}
-
 // Prepare returns a new prepared Statement, optimized to be executed multiple
 // times with different parameter values.
 func (conn *Conn) Prepare(command string, params ...*Parameter) (stmt *Statement, err os.Error) {
-	return conn.PrepareSlice(command, params)
+	err = conn.withRecover("*Conn.Prepare", func() {
+		stmt = conn.prepare(command, params...)
+	})
+
+	return
 }
 
 func (conn *Conn) query(command string, params ...*Parameter) (rs *ResultSet) {

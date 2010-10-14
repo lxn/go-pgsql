@@ -52,7 +52,7 @@ func withSimpleQueryResultSet(t *testing.T, command string, f func(rs *ResultSet
 
 func withStatement(t *testing.T, command string, params []*Parameter, f func(stmt *Statement)) {
 	withConn(t, func(conn *Conn) {
-		stmt, err := conn.PrepareSlice(command, params)
+		stmt, err := conn.Prepare(command, params...)
 		if err != nil {
 			t.Error("withStatement: conn.Prepare:", err)
 			return
