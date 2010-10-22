@@ -289,6 +289,11 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {
 
 	newConn.runtimeParameters = make(map[string]string)
 
+	newConn.onErrorDontRequireReadyForQuery = true
+	defer func() {
+		newConn.onErrorDontRequireReadyForQuery = false
+	}()
+
 	newConn.writeStartup()
 
 	newConn.readBackendMessages(nil)

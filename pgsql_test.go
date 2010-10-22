@@ -109,17 +109,21 @@ func Test_Connect_UglyButValidParamsStyle_ExpectErrNil(t *testing.T) {
 }
 
 func Test_Connect_InvalidPassword_ExpectConnNil(t *testing.T) {
-	conn, _ := Connect("dbname=testdatabase user=testuser password=wrongpassword", LogNothing)
+	conn, _ := Connect("dbname=testdatabase user=testuser password=wrongpassword", LogError)
 	if conn != nil {
 		t.Fail()
 		conn.Close()
 	}
 }
 
-func Test_Connect_InvalidPassword_ExpectErrNotNil(t *testing.T) {
+func Test_Connect_InvalidPassword_ExpectError28000(t *testing.T) {
 	conn, err := Connect("dbname=testdatabase user=testuser password=wrongpassword", LogNothing)
 	if err == nil {
-		t.Fail()
+		t.Error("expected err != nil")
+	}
+	// Code 28000 == invalid authorization specification
+	if pgerr, ok := err.(*Error); !ok || pgerr.Code() != "28000" {
+		t.Error("expected *pgsql.Error with code 28000")
 	}
 	if conn != nil {
 		conn.Close()
