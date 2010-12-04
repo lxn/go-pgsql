@@ -317,12 +317,18 @@ func (rs *ResultSet) float32(ord int) (value float32, isNull bool) {
 
 	switch rs.fields[ord].format {
 	case textFormat:
-		// strconv.Atof32 does not handle NaN
-		if string(val) == "NaN" {
-			value = float32(math.NaN())
-		} else {
+		// strconv.Atof32 does not handle "-Infinity" and "Infinity"
+		valStr := string(val)
+		switch valStr {
+		case "-Infinity":
+			value = float32(math.Inf(-1))
+
+		case "Infinity":
+			value = float32(math.Inf(1))
+
+		default:
 			var err os.Error
-			value, err = strconv.Atof32(string(val))
+			value, err = strconv.Atof32(valStr)
 			panicIfErr(err)
 		}
 
@@ -356,12 +362,18 @@ func (rs *ResultSet) float64(ord int) (value float64, isNull bool) {
 
 	switch rs.fields[ord].format {
 	case textFormat:
-		// strconv.Atof64 does not handle NaN
-		if string(val) == "NaN" {
-			value = math.NaN()
-		} else {
+		// strconv.Atof64 does not handle "-Infinity" and "Infinity"
+		valStr := string(val)
+		switch valStr {
+		case "-Infinity":
+			value = math.Inf(-1)
+
+		case "Infinity":
+			value = math.Inf(1)
+
+		default:
 			var err os.Error
-			value, err = strconv.Atof64(string(val))
+			value, err = strconv.Atof64(valStr)
 			panicIfErr(err)
 		}
 

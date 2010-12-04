@@ -109,7 +109,7 @@ func Test_Connect_UglyButValidParamsStyle_ExpectErrNil(t *testing.T) {
 }
 
 func Test_Connect_InvalidPassword_ExpectConnNil(t *testing.T) {
-	conn, _ := Connect("dbname=testdatabase user=testuser password=wrongpassword", LogError)
+	conn, _ := Connect("dbname=testdatabase user=testuser password=wrongpassword", LogNothing)
 	if conn != nil {
 		t.Fail()
 		conn.Close()
@@ -802,6 +802,23 @@ func Test_Numeric(t *testing.T) {
 		strHave := numHave.FloatString(999)
 		if strHave != strWant {
 			t.Errorf("have: %s, but want: %s", strHave, strWant)
+		}
+	})
+}
+
+func Test_FloatInf(t *testing.T) {
+	numParam := param("@num", Real, float32(math.Inf(-1)))
+
+	withStatementResultSet(t, "SELECT @num;", []*Parameter{numParam}, func(rs *ResultSet) {
+		var numHave float32
+
+		_, err := rs.ScanNext(&numHave)
+		if err != nil {
+			t.Error("failed to scan next:", err)
+		}
+
+		if !math.IsInf(float64(numHave), -1) {
+			t.Fail()
 		}
 	})
 }
