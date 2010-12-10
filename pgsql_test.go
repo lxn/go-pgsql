@@ -969,3 +969,50 @@ func Test_Query_Exception(t *testing.T) {
 		}
 	})
 }
+
+func Test_bufio_Reader_Read_release_2010_12_08(t *testing.T) {
+	withConn(t, func(conn *Conn) {
+		conn.Execute("DROP TABLE _gopgsql_test;")
+
+		_, err := conn.Execute(`
+			CREATE TABLE _gopgsql_test
+			(
+				str text
+			);
+			`)
+		if err != nil {
+			t.Error("failed to create table:", err)
+			return
+		}
+		defer func() {
+			conn.Execute("DROP TABLE _gopgsql_test;")
+		}()
+
+		in := strings.Repeat("x", 10000)
+
+		stmt, err := conn.Prepare("INSERT INTO _gopgsql_test (str) VALUES (@str);", param("@str", Text, in))
+		if err != nil {
+			t.Error("failed to prepare statement:", err)
+			return
+		}
+		defer stmt.Close()
+
+		_, err = stmt.Execute()
+		if err != nil {
+			t.Error("failed to execute statement:", err)
+			return
+		}
+
+		var out string
+
+		_, err = conn.Scan("SELECT str FROM _gopgsql_test;", &out)
+		if err != nil {
+			t.Error("failed to read str:", err)
+			return
+		}
+
+		if out != in {
+			t.Error("out != in")
+		}
+	})
+}

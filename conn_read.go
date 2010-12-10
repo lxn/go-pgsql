@@ -14,8 +14,16 @@ import (
 )
 
 func (conn *Conn) read(b []byte) {
-	_, err := conn.reader.Read(b)
-	panicIfErr(err)
+	readTotal := 0
+	for {
+		n, err := conn.reader.Read(b[readTotal:])
+		panicIfErr(err)
+
+		readTotal += n
+		if readTotal == len(b) {
+			break
+		}
+	}
 }
 
 func (conn *Conn) readByte() byte {
