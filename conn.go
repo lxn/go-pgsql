@@ -9,7 +9,6 @@ package pgsql
 import (
 	"bufio"
 	"bytes"
-	"container/vector"
 	"fmt"
 	"net"
 	"os"
@@ -159,7 +158,7 @@ func (conn *Conn) withRecover(funcName string, f func()) (err os.Error) {
 }
 
 func parseParamsInUnquotedSubstring(s string, name2value map[string]string) (lastKeyword string) {
-	var words vector.StringVector
+	var words []string
 
 	for {
 		index := strings.IndexAny(s, "= \n\r\t")
@@ -169,12 +168,12 @@ func parseParamsInUnquotedSubstring(s string, name2value map[string]string) (las
 
 		word := s[:index]
 		if word != "" {
-			words.Push(word)
+			words = append(words, word)
 		}
 		s = s[index+1:]
 	}
 	if len(s) > 0 {
-		words.Push(s)
+		words = append(words, s)
 	}
 
 	for i := 0; i < len(words)-1; i += 2 {
