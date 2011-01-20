@@ -372,7 +372,7 @@ func Test_DoStatementResultSetTests(t *testing.T) {
 type item struct {
 	id        int
 	name      string
-	price     float
+	price     float64
 	packUnit  uint
 	onSale    bool
 	something interface{}

@@ -109,9 +109,6 @@ func (conn *Conn) writeBind(stmt *Statement) {
 		case byte:
 			values[i] = string([]byte{val})
 
-		case float:
-			values[i] = strconv.Ftoa(val, 'f', -1)
-
 		case float32:
 			values[i] = strconv.Ftoa32(val, 'f', -1)
 

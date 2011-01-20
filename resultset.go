@@ -393,23 +393,6 @@ func (rs *ResultSet) Float64(ord int) (value float64, isNull bool, err os.Error)
 	return
 }
 
-func (rs *ResultSet) float(ord int) (value float, isNull bool) {
-	var val float32
-	val, isNull = rs.float32(ord)
-	value = float(val)
-
-	return
-}
-
-// Float returns the value of the field with the specified ordinal as float.
-func (rs *ResultSet) Float(ord int) (value float, isNull bool, err os.Error) {
-	err = rs.conn.withRecover("*ResultSet.Float", func() {
-		value, isNull = rs.float(ord)
-	})
-
-	return
-}
-
 func (rs *ResultSet) int16(ord int) (value int16, isNull bool) {
 	if rs.conn.LogLevel >= LogVerbose {
 		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.int16"))
@@ -778,7 +761,7 @@ func (rs *ResultSet) any(ord int) (value interface{}, isNull bool) {
 		value, isNull = rs.timeSeconds(ord)
 
 	case _FLOAT4OID:
-		value, isNull = rs.float(ord)
+		value, isNull = rs.float32(ord)
 
 	case _FLOAT8OID:
 		value, isNull = rs.float64(ord)
@@ -844,9 +827,6 @@ func (rs *ResultSet) scan(args ...interface{}) {
 		switch a := arg.(type) {
 		case *bool:
 			*a, _ = rs.bool(i)
-
-		case *float:
-			*a, _ = rs.float(i)
 
 		case *float32:
 			*a, _ = rs.float32(i)

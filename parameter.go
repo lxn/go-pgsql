@@ -179,9 +179,6 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 
 	case Double:
 		switch val := v.(type) {
-		case float:
-			p.value = float64(val)
-
 		case float32:
 			p.value = float64(val)
 
@@ -234,9 +231,6 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 
 	case Real:
 		switch val := v.(type) {
-		case float:
-			p.value = float32(val)
-
 		case float32:
 			p.value = val
 
