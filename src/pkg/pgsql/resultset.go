@@ -475,7 +475,7 @@ func (rs *ResultSet) int64(ord int) (value int64, isNull bool) {
 
 	switch rs.fields[ord].format {
 	case textFormat:
-		x, err := strconv.Atoi(string(val))
+		x, err := strconv.Atoi64(string(val))
 		panicIfErr(err)
 		value = int64(x)
 

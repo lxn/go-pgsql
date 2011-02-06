@@ -1016,3 +1016,20 @@ func Test_bufio_Reader_Read_release_2010_12_08(t *testing.T) {
 		}
 	})
 }
+
+func Test_Issue2_Uint64_OutOfRange(t *testing.T) {
+	withConn(t, func(conn *Conn) {
+		want := uint64(9989608743)
+		query := fmt.Sprintf("SELECT %d::bigint;", want)
+
+		var have uint64
+		if _, err := conn.Scan(query, &have); err != nil {
+			t.Error("failed to read uint64:", err)
+			return
+		}
+
+		if have != want {
+			t.Errorf("have: %d, but want: %d", have, want)
+		}
+	})
+}
