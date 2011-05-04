@@ -69,9 +69,10 @@ func (p *Parameter) panicInvalidValue(v interface{}) {
 }
 
 func isNilPtr(v interface{}) bool {
-	ptr, ok := reflect.NewValue(v).(*reflect.PtrValue)
+	ptr := reflect.ValueOf(v)
 
-	return ok && ptr.IsNil()
+	return ptr.Kind() == reflect.Ptr &&
+		ptr.IsNil()
 }
 
 // SetValue sets the current value of the Parameter.
