@@ -20,7 +20,7 @@ goinstall github.com/lxn/go-pgsql/src/pkg/pgsql
 Using go-pgsql
 ==============
 
-There are some examples in the src/cmd/examples directory which should get you
+There are some examples in the [src/cmd/examples](tree/master/src/cmd/examples) directory which should get you
 started.
 
 Please open an issue on the bug tracker if you encounter a bug.
