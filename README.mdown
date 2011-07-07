@@ -1,16 +1,18 @@
 About go-pgsql
 ==============
 
-go-pgsql is a PostgreSQL client library for the Go programming language.
+go-pgsql is a [PostgreSQL](http://www.postgresql.org) client library for the
+[Go](http://golang.org) programming language.
 
-It partially implements version 3.0 of the PostgreSQL frontend/backend protocol,
-so it should work with servers of version 7.4 and later.
+It partially implements version 3.0 of the
+[PostgreSQL](http://www.postgresql.org) frontend/backend protocol, so it
+should work with servers of version 7.4 and later.
 
 Installing go-pgsql
 ===================
 
-1. Make sure you have a working Go installation, see the installation guide at
-   http://golang.org/doc/install.html
+1. Make sure you have a working [Go](http://golang.org) installation, see
+   the installation guide at http://golang.org/doc/install.html
 2. git clone http://github.com/lxn/go-pgsql.git
 3. cd go-pgsql/src/pkg/pgsql && gomake install
 
@@ -20,8 +22,9 @@ goinstall github.com/lxn/go-pgsql/src/pkg/pgsql
 Using go-pgsql
 ==============
 
-There are some examples in the src/cmd/examples directory which should get you
-started.
+There are some examples in the
+[src/cmd/examples](go-pgsql/tree/master/src/cmd/examples) directory which
+should get you started.
 
 Please open an issue on the bug tracker if you encounter a bug.
 
@@ -35,7 +38,7 @@ go-pgsql is currently missing support for some features, including:
 - some data types like bytea, ...
 - canceling commands/queries
 - bulk copy
-...
+- ...
 
 go-pgsql is (at least for now) not thread-safe, so for every goroutine
 that must talk to the same database, a separate Conn is required.
@@ -44,4 +47,4 @@ Time/Timestamp resolution
 =========================
 
 Because the resolution of time.Time is seconds, fractions of seconds are
-silently dropped by *ResultSet.Time and *ResultSet.TimeSeconds.
+silently dropped by `*ResultSet.Time` and `*ResultSet.TimeSeconds`.
