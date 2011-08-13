@@ -162,7 +162,7 @@ func (conn *Conn) readCommandComplete(rs *ResultSet) {
 	tag := conn.readString()
 
 	if rs != nil {
-		parts := strings.Split(tag, " ", -1)
+		parts := strings.Split(tag, " ")
 
 		rs.rowsAffected, _ = strconv.Atoi64(parts[len(parts)-1])
 		rs.currentResultComplete = true
