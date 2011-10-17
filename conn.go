@@ -167,7 +167,7 @@ func parseParamsInUnquotedSubstring(s string, name2value map[string]string) (las
 			break
 		}
 
-		word := s[:index]
+		word := s[0:index]
 		if word != "" {
 			words.Push(word)
 		}
@@ -266,15 +266,33 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {
 
 	params := newConn.parseParams(connStr)
 	newConn.params = params
+	
+	var env string    // Reusable environment variable used to capture PG environment variables - PGHOST, PGPORT, PGDATABASE, PGUSER
 
 	if params.Host == "" {
 		params.Host = "localhost"
 	}
+	env = os.Getenv("PGHOST")
+	if env  != "" {
+		params.Host = env
+	}
 	if params.Port == 0 {
 		params.Port = 5432
 	}
+	env = os.Getenv("PGPORT")
+	if env != "" {
+		params.Port, _ = strconv.Atoi(env)
+	}
 	if params.Database == "" {
 		params.Database = params.User
+	}
+	env = os.Getenv("PGDATABASE")
+	if env != "" {
+		params.Database = env
+	}
+	env = os.Getenv("PGUSER")
+	if env != "" {
+		params.User = env
 	}
 
 	tcpConn, err := net.Dial("tcp", "", fmt.Sprintf("%s:%d", params.Host, params.Port))
