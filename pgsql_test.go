@@ -109,7 +109,7 @@ func Test_Connect_UglyButValidParamsStyle_ExpectErrNil(t *testing.T) {
 }
 
 func Test_Connect_InvalidPassword_ExpectConnNil(t *testing.T) {
-	conn, _ := Connect("dbname=testdatabase user=testuser password=wrongpassword", LogError)
+	conn, _ := Connect("dbname=testdatabase user=testuser password=wrongpassword", LogNothing)
 	if conn != nil {
 		t.Fail()
 		conn.Close()
@@ -806,6 +806,23 @@ func Test_Numeric(t *testing.T) {
 	})
 }
 
+func Test_FloatInf(t *testing.T) {
+	numParam := param("@num", Real, float32(math.Inf(-1)))
+
+	withStatementResultSet(t, "SELECT @num;", []*Parameter{numParam}, func(rs *ResultSet) {
+		var numHave float32
+
+		_, err := rs.ScanNext(&numHave)
+		if err != nil {
+			t.Error("failed to scan next:", err)
+		}
+
+		if !math.IsInf(float64(numHave), -1) {
+			t.Fail()
+		}
+	})
+}
+
 func Test_FloatNaN(t *testing.T) {
 	numParam := param("@num", Double, math.NaN())
 
@@ -949,6 +966,53 @@ func Test_Query_Exception(t *testing.T) {
 		if err != nil {
 			t.Error("*Conn.Scan failed after previous expected *Conn.Scan error")
 			return
+		}
+	})
+}
+
+func Test_bufio_Reader_Read_release_2010_12_08(t *testing.T) {
+	withConn(t, func(conn *Conn) {
+		conn.Execute("DROP TABLE _gopgsql_test;")
+
+		_, err := conn.Execute(`
+			CREATE TABLE _gopgsql_test
+			(
+				str text
+			);
+			`)
+		if err != nil {
+			t.Error("failed to create table:", err)
+			return
+		}
+		defer func() {
+			conn.Execute("DROP TABLE _gopgsql_test;")
+		}()
+
+		in := strings.Repeat("x", 10000)
+
+		stmt, err := conn.Prepare("INSERT INTO _gopgsql_test (str) VALUES (@str);", param("@str", Text, in))
+		if err != nil {
+			t.Error("failed to prepare statement:", err)
+			return
+		}
+		defer stmt.Close()
+
+		_, err = stmt.Execute()
+		if err != nil {
+			t.Error("failed to execute statement:", err)
+			return
+		}
+
+		var out string
+
+		_, err = conn.Scan("SELECT str FROM _gopgsql_test;", &out)
+		if err != nil {
+			t.Error("failed to read str:", err)
+			return
+		}
+
+		if out != in {
+			t.Error("out != in")
 		}
 	})
 }
