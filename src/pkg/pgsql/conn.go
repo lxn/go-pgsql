@@ -294,7 +294,7 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {
 		params.User = env
 	}
 
-	tcpConn, err := net.Dial("tcp", "", fmt.Sprintf("%s:%d", params.Host, params.Port))
+	tcpConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", params.Host, params.Port))
 	panicIfErr(err)
 
 	panicIfErr(tcpConn.SetReadTimeout(int64(params.TimeoutSeconds * 1000 * 1000 * 1000)))

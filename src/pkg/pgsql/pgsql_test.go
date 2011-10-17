@@ -372,7 +372,7 @@ func Test_DoStatementResultSetTests(t *testing.T) {
 type item struct {
 	id        int
 	name      string
-	price     float
+	price     float64
 	packUnit  uint
 	onSale    bool
 	something interface{}
@@ -1013,6 +1013,23 @@ func Test_bufio_Reader_Read_release_2010_12_08(t *testing.T) {
 
 		if out != in {
 			t.Error("out != in")
+		}
+	})
+}
+
+func Test_Issue2_Uint64_OutOfRange(t *testing.T) {
+	withConn(t, func(conn *Conn) {
+		want := uint64(9989608743)
+		query := fmt.Sprintf("SELECT %d::bigint;", want)
+
+		var have uint64
+		if _, err := conn.Scan(query, &have); err != nil {
+			t.Error("failed to read uint64:", err)
+			return
+		}
+
+		if have != want {
+			t.Errorf("have: %d, but want: %d", have, want)
 		}
 	})
 }

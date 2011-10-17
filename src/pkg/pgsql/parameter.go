@@ -69,9 +69,10 @@ func (p *Parameter) panicInvalidValue(v interface{}) {
 }
 
 func isNilPtr(v interface{}) bool {
-	ptr, ok := reflect.NewValue(v).(*reflect.PtrValue)
+	ptr := reflect.ValueOf(v)
 
-	return ok && ptr.IsNil()
+	return ptr.Kind() == reflect.Ptr &&
+		ptr.IsNil()
 }
 
 // SetValue sets the current value of the Parameter.
@@ -179,9 +180,6 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 
 	case Double:
 		switch val := v.(type) {
-		case float:
-			p.value = float64(val)
-
 		case float32:
 			p.value = float64(val)
 
@@ -234,9 +232,6 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 
 	case Real:
 		switch val := v.(type) {
-		case float:
-			p.value = float32(val)
-
 		case float32:
 			p.value = val
 
