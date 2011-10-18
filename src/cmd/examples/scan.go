@@ -13,7 +13,7 @@ import (
 type item struct {
 	id    int
 	name  string
-	price float
+	price float32
 }
 
 func main() {
