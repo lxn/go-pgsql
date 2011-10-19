@@ -11,7 +11,8 @@ import (
 )
 
 func main() {
-	conn, err := pgsql.Connect("dbname=testdatabase user=testuser password=testpassword", pgsql.LogError)
+	conn, err := pgsql.Connect("dbname=postgres user=cbbrowne port=7099", pgsql.LogError)
+
 	if err != nil {
 		os.Exit(1)
 	}

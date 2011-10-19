@@ -43,6 +43,19 @@ go-pgsql is currently missing support for some features, including:
 go-pgsql is (at least for now) not thread-safe, so for every goroutine
 that must talk to the same database, a separate Conn is required.
 
+Connection Info
+================
+
+To connect, you must pass a connection string to pgsql.Connect().
+Much as with the libpq conninfo parameter, values are optional, and
+may be overridden by environment variables at runtime, specifically:
+
+- PGPORT - port number
+- PGUSER - user name (defaults to postgres)
+- PGHOST - host name/address (defaults to localhost)
+- PGDATABASE - name of database (defaults to user name if not specified)
+
+
 Time/Timestamp resolution
 =========================
 

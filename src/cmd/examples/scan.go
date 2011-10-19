@@ -13,11 +13,13 @@ import (
 type item struct {
 	id    int
 	name  string
-	price float
+	price float32
 }
 
 func main() {
-	conn, err := pgsql.Connect("dbname=testdatabase user=testuser password=testpassword", pgsql.LogError)
+	// conn, err := pgsql.Connect("dbname=postgres user=cbbrowne port=7099", pgsql.LogError)
+	// Can have a long connection string, if needed, but if values are set in environment, it's all optional
+	conn, err := pgsql.Connect("", pgsql.LogError)
 	if err != nil {
 		os.Exit(1)
 	}
