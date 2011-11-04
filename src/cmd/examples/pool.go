@@ -10,7 +10,7 @@ import (
 func main() {
 	// Create a connection pool with up to 3 connections, automatically closing
 	// idle connections after the default timeout period (5 minutes).
-	pool, err := pgsql.NewPool("dbname=testdb user=postgres", 3, 3, pgsql.DEFAULT_IDLE_TIMEOUT)
+	pool, err := pgsql.NewPool("dbname=postgres user=postgres", 3, 3, pgsql.DEFAULT_IDLE_TIMEOUT)
 	if err != nil {
 		log.Fatalf("Error opening connection pool: %s\n", err)
 	}
