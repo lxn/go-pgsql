@@ -72,6 +72,7 @@ func timeoutCloser(p *pool) {
 				p.log("can't create connection")
 			} else {
 				p.conns.PushFront(poolConn{c, time.Seconds()})
+				p.n++
 			}
 		}
 		p.cond.L.Unlock()
