@@ -13,6 +13,7 @@ GOFILES=\
 	state.go\
 	statement.go\
 	types.go\
-	util.go
+	util.go\
+	pool.go
 
 include $(GOROOT)/src/Make.pkg

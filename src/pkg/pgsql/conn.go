@@ -218,6 +218,9 @@ func (conn *Conn) parseParams(s string) *connParams {
 	params.Database = name2value["dbname"]
 	params.User = name2value["user"]
 	params.Password = name2value["password"]
+	if params.Password == "" {
+		params.Password,_ = passwordfromfile(params.Host, params.Port, params.Database,params.User)
+	}
 	params.TimeoutSeconds, _ = strconv.Atoi(name2value["timeout"])
 
 	if conn.LogLevel >= LogDebug {
@@ -340,6 +343,77 @@ func (conn *Conn) Close() (err os.Error) {
 
 		conn.state = disconnectedState{}
 	})
+}
+
+func getpgpassfilename () string {
+	var env string
+	env = os.Getenv("PGPASSFILE")
+	if env != "" {
+		return env
+	}
+	env = os.Getenv("HOME")
+	return fmt.Sprintf("%s/.pgpass", env)
+}
+
+func passwordfromfile (hostname string, port int, dbname string, username string) (string, os.Error) {
+	var sport string
+	var lhostname string
+	if dbname == "" {
+		return "", nil
+	}
+	if username == "" {
+		return "", nil
+	}
+	if hostname == "" {
+		lhostname = "localhost"
+	} else {
+		lhostname = hostname
+	}
+	if port == 0 {
+		sport = "5432"
+	} else {
+		sport = fmt.Sprintf("%d", port)
+	}
+	pgfile := getpgpassfilename()
+	fileinfo, err := os.Stat(pgfile)
+	if err != nil {
+		err := os.NewError(fmt.Sprintf("WARNING: password file \"%s\" is not a plain file\n", pgfile))
+		return "", err
+	}
+	if (fileinfo.Mode & 077) != 0 {
+		err := os.NewError(fmt.Sprintf("WARNING: password file \"%s\" has group or world access; permissions should be u=rw (0600) or less", pgfile))
+		return "", err
+	}
+	fp, err := os.Open(pgfile)
+	if err != nil {
+		err := os.NewError(fmt.Sprintf("Problem opening pgpass file \"%s\"", pgfile))
+		return "", err
+	}
+	br := bufio.NewReader(fp)
+	for {
+		line, ok := br.ReadString('\n')
+		if ok == os.EOF {
+			return "", nil
+		}
+		// Now, split the line into pieces
+		// hostname:port:database:username:password
+		// and * matches anything
+		pieces := strings.Split(line, ":")
+		phost := pieces[0]
+		pport := pieces[1]
+		pdb := pieces[2]
+		puser := pieces[3]
+		ppass := pieces[4]
+
+		if (phost == lhostname || phost == "*") &&
+			(pport == "*" || pport == sport) &&
+			(pdb == "*" || pdb == dbname) &&
+			(puser == "*" || puser == username) {
+
+			return ppass, nil
+		}
+	}
+	return "", nil
 }
 
 func (conn *Conn) execute(command string, params ...*Parameter) int64 {
