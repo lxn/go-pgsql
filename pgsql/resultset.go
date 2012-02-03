@@ -148,7 +148,7 @@ func (rs *ResultSet) fetchNext() bool {
 
 func (rs *ResultSet) setCompletedOnPgsqlError(err error) {
 	if err != nil && !rs.hasCurrentRow {
-		if _, ok := err.(*error); ok {
+		if _, ok := err.(error); ok {
 			// This is likely an exception raised by a user defined PostgreSQL
 			// function.
 			// FIXME: Not sure if this handling is sane.
@@ -327,7 +327,8 @@ func (rs *ResultSet) float32(ord int) (value float32, isNull bool) {
 
 		default:
 			var err error
-			value, err = strconv.ParseFloat(valStr, 32)
+			v, err := strconv.ParseFloat(valStr, 32)
+			value = float32(v)
 			panicIfErr(err)
 		}
 
@@ -862,10 +863,10 @@ func (rs *ResultSet) scan(args ...interface{}) {
 		case *string:
 			*a, _ = rs.string(i)
 
-		case time.Time:
+		case **time.Time:
 			var t time.Time
 			t, _ = rs.time(i)
-			*a = t
+			*a = &t
 
 		case *uint:
 			*a, _ = rs.uint(i)
