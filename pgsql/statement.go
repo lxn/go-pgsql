@@ -7,7 +7,6 @@ package pgsql
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"regexp"
 )
 
@@ -187,7 +186,7 @@ func (stmt *Statement) close() {
 }
 
 // Close closes the Statement, releasing resources on the server.
-func (stmt *Statement) Close() (err os.Error) {
+func (stmt *Statement) Close() (err error) {
 	err = stmt.conn.withRecover("*Statement.Close", func() {
 		stmt.close()
 	})
@@ -262,7 +261,7 @@ func (stmt *Statement) query() (rs *ResultSet) {
 //
 // The returned ResultSet must be closed before sending another
 // query or command to the server over the same connection.
-func (stmt *Statement) Query() (rs *ResultSet, err os.Error) {
+func (stmt *Statement) Query() (rs *ResultSet, err error) {
 	err = stmt.conn.withRecover("*Statement.Query", func() {
 		rs = stmt.query()
 	})
@@ -288,7 +287,7 @@ func (stmt *Statement) execute() (rowsAffected int64) {
 //
 // If the results of a query are needed, use the
 // Query method instead.
-func (stmt *Statement) Execute() (rowsAffected int64, err os.Error) {
+func (stmt *Statement) Execute() (rowsAffected int64, err error) {
 	err = stmt.conn.withRecover("*Statement.Execute", func() {
 		rowsAffected = stmt.execute()
 	})
@@ -314,7 +313,7 @@ func (stmt *Statement) scan(args ...interface{}) (*ResultSet, bool) {
 //
 // The arguments must be of pointer types. If a row has
 // been fetched, fetched will be true, otherwise false.
-func (stmt *Statement) Scan(args ...interface{}) (fetched bool, err os.Error) {
+func (stmt *Statement) Scan(args ...interface{}) (fetched bool, err error) {
 	err = stmt.conn.withRecover("*Statement.Scan", func() {
 		var rs *ResultSet
 		rs, fetched = stmt.scan(args...)

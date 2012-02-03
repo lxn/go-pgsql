@@ -6,9 +6,9 @@ package pgsql
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
-	"os"
 	"runtime"
 )
 
@@ -20,7 +20,7 @@ func (conn *Conn) logf(level LogLevel, format string, v ...interface{}) {
 	log.Printf(format, v...)
 }
 
-func (conn *Conn) logError(level LogLevel, err os.Error) {
+func (conn *Conn) logError(level LogLevel, err error) {
 	if conn.LogLevel >= level {
 		conn.log(level, err)
 	}
@@ -35,7 +35,7 @@ func (conn *Conn) logExit(funcName string) {
 	conn.log(LogDebug, "exiting: ", "pgsql."+funcName)
 }
 
-func (conn *Conn) logAndConvertPanic(x interface{}) (err os.Error) {
+func (conn *Conn) logAndConvertPanic(x interface{}) (err error) {
 	buf := bytes.NewBuffer(nil)
 
 	buf.WriteString(fmt.Sprintf("Error: %v\nStack Trace:\n", x))
@@ -64,9 +64,9 @@ func (conn *Conn) logAndConvertPanic(x interface{}) (err os.Error) {
 		conn.log(LogError, buf)
 	}
 
-	err, ok := x.(os.Error)
+	err, ok := x.(error)
 	if !ok {
-		err = os.NewError(buf.String())
+		err = errors.New(buf.String())
 	}
 
 	return

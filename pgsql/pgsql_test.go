@@ -5,10 +5,10 @@
 package pgsql
 
 import (
-	"big"
+	"errors"
 	"fmt"
 	"math"
-	"os"
+	"math/big"
 	"strings"
 	"testing"
 	"time"
@@ -396,7 +396,7 @@ func Test_Conn_Scan(t *testing.T) {
 		if x.name != "abc" {
 			t.Errorf("name - have: '%s', but want: 'abc'", x.name)
 		}
-		if math.Fabs(float64(x.price)-14.99) > 0.000001 {
+		if math.Abs(float64(x.price)-14.99) > 0.000001 {
 			t.Errorf("price - have: %f, but want: 14.99", x.price)
 		}
 		if x.packUnit != 4 {
@@ -409,7 +409,7 @@ func Test_Conn_Scan(t *testing.T) {
 		if !ok {
 			t.Error("something should have type int64")
 		} else {
-			dateStr := time.SecondsToUTC(seconds).Format(dateFormat)
+			dateStr := time.Unix(seconds, 0).UTC().Format(dateFormat)
 			if dateStr != "2010-08-20" {
 				t.Errorf("something - have: '%s', but want: '2010-08-20'", dateStr)
 			}
@@ -471,7 +471,7 @@ func Test_DateStyle(t *testing.T) {
 				return
 			}
 
-			var ts *time.Time
+			var ts time.Time
 
 			for _, test := range tests {
 				_, err = conn.Scan(fmt.Sprintf("SELECT %s '%s';", test.typ, test.want), &ts)
@@ -502,14 +502,14 @@ func newTimeTest(commandTemplate, format, value string) *timeTest {
 	if err != nil {
 		panic(err)
 	}
-	t = time.SecondsToUTC(t.Seconds())
+	t = time.Unix(t.Unix(), 0).UTC()
 
 	if strings.Index(commandTemplate, "%s") > -1 {
 		test.command = fmt.Sprintf(commandTemplate, value)
 	} else {
 		test.command = commandTemplate
 	}
-	test.seconds = t.Seconds()
+	test.seconds = t.Unix()
 	test.timeString = t.String()
 
 	return test
@@ -563,7 +563,7 @@ func Test_Conn_Scan_Time(t *testing.T) {
 				t.Errorf("'%s' failed - have: '%d', but want '%d'", test.command, seconds, test.seconds)
 			}
 
-			var tm *time.Time
+			var tm time.Time
 			_, err = conn.Scan(test.command, &tm)
 			if err != nil {
 				t.Error(err)
@@ -640,10 +640,10 @@ func Test_Insert_Time(t *testing.T) {
 				VALUES
 				(@d, @t, @ttz, @ts, @tstz);`,
 				param("@d", Date, _d),
-				param("@t", Time, _t.Seconds()),
+				param("@t", Time, _t.Unix()),
 				param("@ttz", TimeTZ, _ttz),
 				param("@ts", Timestamp, _ts),
-				param("@tstz", TimestampTZ, uint64(_tstz.Seconds())))
+				param("@tstz", TimestampTZ, uint64(_tstz.Unix())))
 			if err != nil {
 				t.Error("failed to prepare insert statement:", err)
 				return
@@ -665,7 +665,7 @@ func Test_Insert_Time(t *testing.T) {
 				t.Errorf("'%s' failed - have: '%d', but want '%d'", test.command, seconds, test.seconds)
 			}
 
-			var tm *time.Time
+			var tm time.Time
 			_, err = conn.Scan(test.command, &tm)
 			if err != nil {
 				t.Error(err)
@@ -701,7 +701,7 @@ func Test_Conn_WithSavepoint(t *testing.T) {
 			conn.Execute("DROP TABLE _gopgsql_test_account;")
 		}()
 
-		err = conn.WithTransaction(ReadCommittedIsolation, func() (err os.Error) {
+		err = conn.WithTransaction(ReadCommittedIsolation, func() (err error) {
 			_, err = conn.Execute(`
 				UPDATE _gopgsql_test_account
 				SET balance = balance - 100.0
@@ -711,7 +711,7 @@ func Test_Conn_WithSavepoint(t *testing.T) {
 				return
 			}
 
-			err = conn.WithSavepoint(ReadCommittedIsolation, func() (err os.Error) {
+			err = conn.WithSavepoint(ReadCommittedIsolation, func() (err error) {
 				_, err = conn.Execute(`
 					UPDATE _gopgsql_test_account
 					SET balance = balance + 100.0
@@ -721,7 +721,7 @@ func Test_Conn_WithSavepoint(t *testing.T) {
 					return
 				}
 
-				err = os.NewError("wrong credit account")
+				err = errors.New("wrong credit account")
 
 				return
 			})
@@ -772,7 +772,7 @@ func Test_Conn_WithSavepoint(t *testing.T) {
 		for name, haveBalance := range have {
 			wantBalance := want[name]
 
-			if math.Fabs(haveBalance-wantBalance) > 0.000001 {
+			if math.Abs(haveBalance-wantBalance) > 0.000001 {
 				t.Errorf("name: %s have: %f, but want: %f", name, haveBalance, wantBalance)
 			}
 		}
@@ -844,7 +844,7 @@ func Test_Parameter_SetValue_NilPtr_ValueReturnsNil(t *testing.T) {
 	initialValue, _ := time.Parse(timestampFormat, "2010-09-28 16:09:32")
 	p := param("@startDateTime", TimestampTZ, initialValue)
 
-	var nilValue *time.Time
+	var nilValue time.Time
 
 	p.SetValue(nilValue)
 
