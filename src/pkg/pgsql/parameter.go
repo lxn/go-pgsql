@@ -5,9 +5,9 @@
 package pgsql
 
 import (
-	"big"
+	"errors"
 	"fmt"
-	"os"
+	"math/big"
 	"reflect"
 	"time"
 )
@@ -64,7 +64,7 @@ func (p *Parameter) Value() interface{} {
 }
 
 func (p *Parameter) panicInvalidValue(v interface{}) {
-	panic(os.NewError(fmt.Sprintf("Parameter %s: Invalid value for PostgreSQL type %s: '%v' (Go type: %T)",
+	panic(errors.New(fmt.Sprintf("Parameter %s: Invalid value for PostgreSQL type %s: '%v' (Go type: %T)",
 		p.name, p.typ, v, v)))
 }
 
@@ -76,7 +76,7 @@ func isNilPtr(v interface{}) bool {
 }
 
 // SetValue sets the current value of the Parameter.
-func (p *Parameter) SetValue(v interface{}) (err os.Error) {
+func (p *Parameter) SetValue(v interface{}) (err error) {
 	if p.stmt != nil && p.stmt.conn.LogLevel >= LogVerbose {
 		defer p.stmt.conn.logExit(p.stmt.conn.logEnter("*Parameter.SetValue"))
 	}
@@ -85,14 +85,14 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 		if x := recover(); x != nil {
 			if p.stmt == nil {
 				switch ex := x.(type) {
-				case os.Error:
+				case error:
 					err = ex
 
 				case string:
-					err = os.NewError(ex)
+					err = errors.New(ex)
 
 				default:
-					err = os.NewError("pgsql.*Parameter.SetValue: D'oh!")
+					err = errors.New("pgsql.*Parameter.SetValue: D'oh!")
 				}
 			} else {
 				err = p.stmt.conn.logAndConvertPanic(x)
@@ -161,14 +161,14 @@ func (p *Parameter) SetValue(v interface{}) (err os.Error) {
 		case int64:
 			p.value = val
 
-		case *time.Time:
+		case time.Time:
 			if isNilPtr(v) {
 				p.value = nil
 				return
 			}
 
 			t := &time.Time{}
-			*t = *val
+			*t = val
 			p.value = t
 
 		case uint64:

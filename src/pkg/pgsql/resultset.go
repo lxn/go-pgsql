@@ -5,10 +5,9 @@
 package pgsql
 
 import (
-	"big"
 	"encoding/binary"
 	"math"
-	"os"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -125,7 +124,7 @@ func (rs *ResultSet) nextResult() bool {
 // In this case true is returned, otherwise false.
 // Statements support a single result only, use *Conn.Query if you need
 // this functionality.
-func (rs *ResultSet) NextResult() (hasResult bool, err os.Error) {
+func (rs *ResultSet) NextResult() (hasResult bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.NextResult", func() {
 		hasResult = rs.nextResult()
 	})
@@ -147,9 +146,9 @@ func (rs *ResultSet) fetchNext() bool {
 	return !rs.currentResultComplete
 }
 
-func (rs *ResultSet) setCompletedOnPgsqlError(err os.Error) {
+func (rs *ResultSet) setCompletedOnPgsqlError(err error) {
 	if err != nil && !rs.hasCurrentRow {
-		if _, ok := err.(*Error); ok {
+		if _, ok := err.(*error); ok {
 			// This is likely an exception raised by a user defined PostgreSQL
 			// function.
 			// FIXME: Not sure if this handling is sane.
@@ -162,7 +161,7 @@ func (rs *ResultSet) setCompletedOnPgsqlError(err os.Error) {
 // FetchNext reads the next row, if there is one.
 //
 // In this case true is returned, otherwise false.
-func (rs *ResultSet) FetchNext() (hasRow bool, err os.Error) {
+func (rs *ResultSet) FetchNext() (hasRow bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.FetchNext", func() {
 		hasRow = rs.fetchNext()
 	})
@@ -190,7 +189,7 @@ func (rs *ResultSet) close() {
 
 // Close closes the ResultSet, so another query or command can be sent to
 // the server over the same connection.
-func (rs *ResultSet) Close() (err os.Error) {
+func (rs *ResultSet) Close() (err error) {
 	err = rs.conn.withRecover("*ResultSet.Close", func() {
 		rs.close()
 	})
@@ -213,7 +212,7 @@ func (rs *ResultSet) isNull(ord int) bool {
 }
 
 // IsNull returns if the value of the field with the specified ordinal is null.
-func (rs *ResultSet) IsNull(ord int) (isNull bool, err os.Error) {
+func (rs *ResultSet) IsNull(ord int) (isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.IsNull", func() {
 		isNull = rs.isNull(ord)
 	})
@@ -231,7 +230,7 @@ func (rs *ResultSet) FieldCount() int {
 }
 
 // Name returns the name of the field with the specified ordinal.
-func (rs *ResultSet) Name(ord int) (name string, err os.Error) {
+func (rs *ResultSet) Name(ord int) (name string, err error) {
 	err = rs.conn.withRecover("*ResultSet.Name", func() {
 		name = rs.fields[ord].name
 	})
@@ -240,7 +239,7 @@ func (rs *ResultSet) Name(ord int) (name string, err os.Error) {
 }
 
 // Type returns the PostgreSQL type of the field with the specified ordinal.
-func (rs *ResultSet) Type(ord int) (typ Type, err os.Error) {
+func (rs *ResultSet) Type(ord int) (typ Type, err error) {
 	err = rs.conn.withRecover("*ResultSet.Type", func() {
 		switch t := rs.fields[ord].typeOID; t {
 		case _BOOLOID, _CHAROID, _DATEOID, _FLOAT4OID, _FLOAT8OID, _INT2OID,
@@ -295,7 +294,7 @@ func (rs *ResultSet) bool(ord int) (value, isNull bool) {
 }
 
 // Bool returns the value of the field with the specified ordinal as bool.
-func (rs *ResultSet) Bool(ord int) (value, isNull bool, err os.Error) {
+func (rs *ResultSet) Bool(ord int) (value, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Bool", func() {
 		value, isNull = rs.bool(ord)
 	})
@@ -327,8 +326,8 @@ func (rs *ResultSet) float32(ord int) (value float32, isNull bool) {
 			value = float32(math.Inf(1))
 
 		default:
-			var err os.Error
-			value, err = strconv.Atof32(valStr)
+			var err error
+			value, err = strconv.ParseFloat(valStr, 32)
 			panicIfErr(err)
 		}
 
@@ -340,7 +339,7 @@ func (rs *ResultSet) float32(ord int) (value float32, isNull bool) {
 }
 
 // Float32 returns the value of the field with the specified ordinal as float32.
-func (rs *ResultSet) Float32(ord int) (value float32, isNull bool, err os.Error) {
+func (rs *ResultSet) Float32(ord int) (value float32, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Float32", func() {
 		value, isNull = rs.float32(ord)
 	})
@@ -372,8 +371,8 @@ func (rs *ResultSet) float64(ord int) (value float64, isNull bool) {
 			value = math.Inf(1)
 
 		default:
-			var err os.Error
-			value, err = strconv.Atof64(valStr)
+			var err error
+			value, err = strconv.ParseFloat(valStr, 64)
 			panicIfErr(err)
 		}
 
@@ -385,7 +384,7 @@ func (rs *ResultSet) float64(ord int) (value float64, isNull bool) {
 }
 
 // Float64 returns the value of the field with the specified ordinal as float64.
-func (rs *ResultSet) Float64(ord int) (value float64, isNull bool, err os.Error) {
+func (rs *ResultSet) Float64(ord int) (value float64, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Float64", func() {
 		value, isNull = rs.float64(ord)
 	})
@@ -419,7 +418,7 @@ func (rs *ResultSet) int16(ord int) (value int16, isNull bool) {
 }
 
 // Int16 returns the value of the field with the specified ordinal as int16.
-func (rs *ResultSet) Int16(ord int) (value int16, isNull bool, err os.Error) {
+func (rs *ResultSet) Int16(ord int) (value int16, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Int16", func() {
 		value, isNull = rs.int16(ord)
 	})
@@ -453,7 +452,7 @@ func (rs *ResultSet) int32(ord int) (value int32, isNull bool) {
 }
 
 // Int32 returns the value of the field with the specified ordinal as int32.
-func (rs *ResultSet) Int32(ord int) (value int32, isNull bool, err os.Error) {
+func (rs *ResultSet) Int32(ord int) (value int32, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Int32", func() {
 		value, isNull = rs.int32(ord)
 	})
@@ -475,7 +474,7 @@ func (rs *ResultSet) int64(ord int) (value int64, isNull bool) {
 
 	switch rs.fields[ord].format {
 	case textFormat:
-		x, err := strconv.Atoi64(string(val))
+		x, err := strconv.ParseInt(string(val), 10, 64)
 		panicIfErr(err)
 		value = int64(x)
 
@@ -487,7 +486,7 @@ func (rs *ResultSet) int64(ord int) (value int64, isNull bool) {
 }
 
 // Int64 returns the value of the field with the specified ordinal as int64.
-func (rs *ResultSet) Int64(ord int) (value int64, isNull bool, err os.Error) {
+func (rs *ResultSet) Int64(ord int) (value int64, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Int64", func() {
 		value, isNull = rs.int64(ord)
 	})
@@ -504,7 +503,7 @@ func (rs *ResultSet) int(ord int) (value int, isNull bool) {
 }
 
 // Int returns the value of the field with the specified ordinal as int.
-func (rs *ResultSet) Int(ord int) (value int, isNull bool, err os.Error) {
+func (rs *ResultSet) Int(ord int) (value int, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Int", func() {
 		value, isNull = rs.int(ord)
 	})
@@ -540,7 +539,7 @@ func (rs *ResultSet) rat(ord int) (value *big.Rat, isNull bool) {
 }
 
 // Rat returns the value of the field with the specified ordinal as *big.Rat.
-func (rs *ResultSet) Rat(ord int) (value *big.Rat, isNull bool, err os.Error) {
+func (rs *ResultSet) Rat(ord int) (value *big.Rat, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Rat", func() {
 		value, isNull = rs.rat(ord)
 	})
@@ -564,7 +563,7 @@ func (rs *ResultSet) string(ord int) (value string, isNull bool) {
 }
 
 // String returns the value of the field with the specified ordinal as string.
-func (rs *ResultSet) String(ord int) (value string, isNull bool, err os.Error) {
+func (rs *ResultSet) String(ord int) (value string, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.String", func() {
 		value, isNull = rs.string(ord)
 	})
@@ -572,7 +571,7 @@ func (rs *ResultSet) String(ord int) (value string, isNull bool, err os.Error) {
 	return
 }
 
-func (rs *ResultSet) time(ord int) (value *time.Time, isNull bool) {
+func (rs *ResultSet) time(ord int) (value time.Time, isNull bool) {
 	if rs.conn.LogLevel >= LogVerbose {
 		defer rs.conn.logExit(rs.conn.logEnter("*ResultSet.Time"))
 	}
@@ -585,13 +584,13 @@ func (rs *ResultSet) time(ord int) (value *time.Time, isNull bool) {
 		return
 	}
 
-	value = time.SecondsToUTC(seconds)
+	value = time.Unix(seconds, 0).UTC()
 
 	return
 }
 
 // Time returns the value of the field with the specified ordinal as *time.Time.
-func (rs *ResultSet) Time(ord int) (value *time.Time, isNull bool, err os.Error) {
+func (rs *ResultSet) Time(ord int) (value time.Time, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Time", func() {
 		value, isNull = rs.time(ord)
 	})
@@ -611,7 +610,7 @@ func (rs *ResultSet) timeSeconds(ord int) (value int64, isNull bool) {
 
 	val := rs.values[ord]
 
-	var t *time.Time
+	var t time.Time
 
 	switch rs.fields[ord].format {
 	case textFormat:
@@ -654,7 +653,7 @@ func (rs *ResultSet) timeSeconds(ord int) (value int64, isNull bool) {
 			}
 		}
 
-		var err os.Error
+		var err error
 		t, err = time.Parse(format, s)
 		panicIfErr(err)
 
@@ -662,13 +661,13 @@ func (rs *ResultSet) timeSeconds(ord int) (value int64, isNull bool) {
 		panicNotImplemented()
 	}
 
-	value = t.Seconds()
+	value = t.Unix()
 
 	return
 }
 
 // TimeSeconds returns the value of the field with the specified ordinal as int64.
-func (rs *ResultSet) TimeSeconds(ord int) (value int64, isNull bool, err os.Error) {
+func (rs *ResultSet) TimeSeconds(ord int) (value int64, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.TimeSeconds", func() {
 		value, isNull = rs.timeSeconds(ord)
 	})
@@ -685,7 +684,7 @@ func (rs *ResultSet) uint(ord int) (value uint, isNull bool) {
 }
 
 // Uint returns the value of the field with the specified ordinal as uint.
-func (rs *ResultSet) Uint(ord int) (value uint, isNull bool, err os.Error) {
+func (rs *ResultSet) Uint(ord int) (value uint, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Uint", func() {
 		value, isNull = rs.uint(ord)
 	})
@@ -702,7 +701,7 @@ func (rs *ResultSet) uint16(ord int) (value uint16, isNull bool) {
 }
 
 // Uint16 returns the value of the field with the specified ordinal as uint16.
-func (rs *ResultSet) Uint16(ord int) (value uint16, isNull bool, err os.Error) {
+func (rs *ResultSet) Uint16(ord int) (value uint16, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Uint16", func() {
 		value, isNull = rs.uint16(ord)
 	})
@@ -719,7 +718,7 @@ func (rs *ResultSet) uint32(ord int) (value uint32, isNull bool) {
 }
 
 // Uint32 returns the value of the field with the specified ordinal as uint32.
-func (rs *ResultSet) Uint32(ord int) (value uint32, isNull bool, err os.Error) {
+func (rs *ResultSet) Uint32(ord int) (value uint32, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Uint32", func() {
 		value, isNull = rs.uint32(ord)
 	})
@@ -736,7 +735,7 @@ func (rs *ResultSet) uint64(ord int) (value uint64, isNull bool) {
 }
 
 // Uint64 returns the value of the field with the specified ordinal as uint64.
-func (rs *ResultSet) Uint64(ord int) (value uint64, isNull bool, err os.Error) {
+func (rs *ResultSet) Uint64(ord int) (value uint64, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Uint64", func() {
 		value, isNull = rs.uint64(ord)
 	})
@@ -806,7 +805,7 @@ func (rs *ResultSet) any(ord int) (value interface{}, isNull bool) {
 //	Timestamp	int64
 //	TimestampTZ	int64
 //	Varchar		string
-func (rs *ResultSet) Any(ord int) (value interface{}, isNull bool, err os.Error) {
+func (rs *ResultSet) Any(ord int) (value interface{}, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Any", func() {
 		value, isNull = rs.any(ord)
 	})
@@ -863,8 +862,8 @@ func (rs *ResultSet) scan(args ...interface{}) {
 		case *string:
 			*a, _ = rs.string(i)
 
-		case **time.Time:
-			var t *time.Time
+		case time.Time:
+			var t time.Time
 			t, _ = rs.time(i)
 			*a = t
 
@@ -897,7 +896,7 @@ func (rs *ResultSet) scan(args ...interface{}) {
 // to store field values into the specified arguments.
 //
 // The arguments must be of pointer types.
-func (rs *ResultSet) Scan(args ...interface{}) (err os.Error) {
+func (rs *ResultSet) Scan(args ...interface{}) (err error) {
 	err = rs.conn.withRecover("*ResultSet.Scan", func() {
 		rs.scan(args...)
 	})
@@ -921,7 +920,7 @@ func (rs *ResultSet) scanNext(args ...interface{}) (fetched bool) {
 //
 // The arguments must be of pointer types. If a row has been fetched, fetched
 // will be true, otherwise false.
-func (rs *ResultSet) ScanNext(args ...interface{}) (fetched bool, err os.Error) {
+func (rs *ResultSet) ScanNext(args ...interface{}) (fetched bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.ScanNext", func() {
 		fetched = rs.scanNext(args...)
 	})
