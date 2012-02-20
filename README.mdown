@@ -11,19 +11,17 @@ should work with servers of version 7.4 and later.
 Installing go-pgsql
 ===================
 
-1. Make sure you have a working [Go](http://golang.org) installation, see
-   the installation guide at http://golang.org/doc/install.html
-2. git clone http://github.com/lxn/go-pgsql.git
-3. cd go-pgsql/src/pkg/pgsql && gomake install
+First make sure you have a working [Go](http://golang.org) installation, see
+the installation guide at http://golang.org/doc/install.html
 
-Alternatively you can use goinstall:
-goinstall github.com/lxn/go-pgsql/src/pkg/pgsql
+Now you should be able to install go-pgsql by running
+go get github.com/lxn/go-pgsql
 
 Using go-pgsql
 ==============
 
 There are some examples in the
-[src/cmd/examples](go-pgsql/tree/master/src/cmd/examples) directory which
+[examples](go-pgsql/tree/master/examples) directory which
 should get you started.
 
 Please open an issue on the bug tracker if you encounter a bug.
@@ -33,6 +31,7 @@ Missing Features
 
 go-pgsql is currently missing support for some features, including:
 
+- database/sql
 - authentication types other than MD5
 - SSL encrypted sessions
 - some data types like bytea, ...
