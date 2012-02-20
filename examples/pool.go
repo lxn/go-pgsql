@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"pgsql"
+	"github.com/lxn/go-pgsql"
 )
 
 func main() {

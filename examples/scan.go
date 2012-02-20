@@ -7,7 +7,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"pgsql"
+	"github.com/lxn/go-pgsql"
 )
 
 type item struct {
