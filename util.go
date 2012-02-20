@@ -1,4 +1,4 @@
-// Copyright 2010 Alexander Neumann. All rights reserved.
+// Copyright 2010 The go-pgsql Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
