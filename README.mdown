@@ -15,7 +15,7 @@ First make sure you have a working [Go](http://golang.org) installation, see
 the installation guide at http://golang.org/doc/install.html
 
 Now you should be able to install go-pgsql by running
-go get github.com/lxn/go-pgsql
+`go get github.com/lxn/go-pgsql`
 
 Using go-pgsql
 ==============
