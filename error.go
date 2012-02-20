@@ -84,7 +84,7 @@ func (e *Error) Routine() string {
 	return e.routine
 }
 
-func (e *Error) String() string {
+func (e *Error) Error() string {
 	return fmt.Sprintf(
 		`Severity: %s
 		Code: %s

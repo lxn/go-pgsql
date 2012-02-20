@@ -4,11 +4,7 @@
 
 package pgsql
 
-import (
-	"os"
-)
-
-func panicIfErr(err os.Error) {
+func panicIfErr(err error) {
 	if err != nil {
 		panic(err)
 	}

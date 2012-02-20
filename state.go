@@ -24,7 +24,6 @@ type state interface {
 	query(conn *Conn, rs *ResultSet, sql string)
 }
 
-
 // abstractState can be embedded in any real state struct, so it satisfies
 // the state interface without implementing all state methods itself.
 type abstractState struct{}
@@ -45,7 +44,6 @@ func (abstractState) query(conn *Conn, rs *ResultSet, sql string) {
 	panic(invalidOpForStateMsg)
 }
 
-
 // disconnectedState is the initial state before a connection is established.
 type disconnectedState struct {
 	abstractState
@@ -54,7 +52,6 @@ type disconnectedState struct {
 func (disconnectedState) code() ConnStatus {
 	return StatusDisconnected
 }
-
 
 // processingQueryState is the state that is active when
 // the results of a query are being processed.
@@ -65,7 +62,6 @@ type processingQueryState struct {
 func (processingQueryState) code() ConnStatus {
 	return StatusProcessingQuery
 }
-
 
 // readyState is the state that is active when the connection to the
 // PostgreSQL server is ready for queries.

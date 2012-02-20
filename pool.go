@@ -1,38 +1,38 @@
 package pgsql
 
 import (
-	"os"
+	"bufio"
+	"container/list"
+	"errors"
 	"fmt"
 	"log"
+	"runtime"
 	"sync"
 	"time"
-	"bufio"
-	"runtime"
-	"container/list"
 )
 
 const DEFAULT_IDLE_TIMEOUT = 300 // Seconds
 
 type poolConn struct {
 	*Conn
-	atime int64 // Time at which Conn is inserted into free list
+	atime time.Time // Time at which Conn is inserted into free list
 }
 
 type pool struct {
-	params  string     // Params to create new Conn
-	conns   *list.List // List of available Conns
-	max     int        // Maximum number of connections to create
-	min     int        // min number of connections to create
-	n       int        // Number of connections created
-	cond    *sync.Cond // Pool lock, and condition to signal when connection is released
-	timeout int64      // Idle timeout period in seconds
+	params  string        // Params to create new Conn
+	conns   *list.List    // List of available Conns
+	max     int           // Maximum number of connections to create
+	min     int           // min number of connections to create
+	n       int           // Number of connections created
+	cond    *sync.Cond    // Pool lock, and condition to signal when connection is released
+	timeout time.Duration // Idle timeout period in seconds
 	closed  bool
 	Debug   bool // Set to true to print debug messages to stderr
 }
 
 func (p *pool) log(msg string) {
 	if p.Debug {
-		log.Println(time.LocalTime().Format("2006-01-02 15:04:05"), msg)
+		log.Println(time.Now().Format("2006-01-02 15:04:05"), msg)
 	}
 }
 
@@ -48,20 +48,20 @@ type Pool struct {
 func timeoutCloser(p *pool) {
 	for p != nil && !p.closed {
 		p.cond.L.Lock()
-		now := time.Seconds()
-		delay := 1e9 * p.timeout
+		now := time.Now()
+		delay := p.timeout
 		for p.conns.Len() > 0 {
 			front := p.conns.Front()
 			pc := front.Value.(poolConn)
 			atime := pc.atime
-			if (now - atime) > p.timeout {
+			if (now.Sub(atime)) > p.timeout {
 				pc.Conn.Close()
 				p.conns.Remove(front)
 				p.n--
 				p.log("idle connection closed")
 			} else {
 				// Wait until first connection would timeout if it isn't used.
-				delay = 1e9 * (p.timeout - (now - atime) + 1)
+				delay = p.timeout - now.Sub(atime) + 1
 				break
 			}
 		}
@@ -71,12 +71,12 @@ func timeoutCloser(p *pool) {
 			if err != nil {
 				p.log("can't create connection")
 			} else {
-				p.conns.PushFront(poolConn{c, time.Seconds()})
+				p.conns.PushFront(poolConn{c, time.Now()})
 				p.n++
 			}
 		}
 		p.cond.L.Unlock()
-		time.Sleep(delay)
+		time.Sleep(delay * time.Second)
 	}
 	p.log("timeoutCloser finished")
 }
@@ -86,15 +86,15 @@ func timeoutCloser(p *pool) {
 // An error is returned if an initial connection cannot be created.
 // Connections that have been idle for idleTimeout seconds will be automatically
 // closed.
-func NewPool(connectParams string, minConns, maxConns, idleTimeout int) (p *Pool, err os.Error) {
+func NewPool(connectParams string, minConns, maxConns int, idleTimeout time.Duration) (p *Pool, err error) {
 	if minConns < 1 {
-		return nil, os.NewError("minConns must be >= 1")
+		return nil, errors.New("minConns must be >= 1")
 	}
 	if maxConns < 1 {
-		return nil, os.NewError("maxConns must be >= 1")
+		return nil, errors.New("maxConns must be >= 1")
 	}
 	if idleTimeout < 5 {
-		return nil, os.NewError("idleTimeout must be >= 5")
+		return nil, errors.New("idleTimeout must be >= 5")
 	}
 
 	// Create initial connection to verify connectParams will work.
@@ -110,18 +110,18 @@ func NewPool(connectParams string, minConns, maxConns, idleTimeout int) (p *Pool
 			min:     minConns,
 			n:       1,
 			cond:    sync.NewCond(new(sync.Mutex)),
-			timeout: int64(idleTimeout),
+			timeout: idleTimeout,
 		},
 	}
-	p.conns.PushFront(poolConn{c, time.Seconds()})
+	p.conns.PushFront(poolConn{c, time.Now()})
 
 	for i := 0; i < minConns-1; i++ {
 		// pre-fill the pool
 		_c, err := Connect(connectParams, LogError)
 		if err != nil {
-			return
+			return nil, err
 		}
-		p.conns.PushFront(poolConn{_c, time.Seconds()})
+		p.conns.PushFront(poolConn{_c, time.Now()})
 		p.n++
 	}
 
@@ -134,11 +134,11 @@ func NewPool(connectParams string, minConns, maxConns, idleTimeout int) (p *Pool
 // failed to create a new connection.
 // When an Acquired connection has been finished with, it should be returned
 // to the pool via Release.
-func (p *Pool) Acquire() (c *Conn, err os.Error) {
+func (p *Pool) Acquire() (c *Conn, err error) {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 	if p.closed {
-		return nil, os.NewError("pool is closed")
+		return nil, errors.New("pool is closed")
 	}
 	if p.conns.Len() > 0 {
 		c = p.conns.Remove(p.conns.Front()).(poolConn).Conn
@@ -174,7 +174,7 @@ func (p *Pool) Release(c *Conn) {
 		c.state = readyState{}
 
 		// push back to the queue
-		p.conns.PushBack(poolConn{c, time.Seconds()})
+		p.conns.PushBack(poolConn{c, time.Now()})
 		if p.Debug {
 			p.log(fmt.Sprintf("connection released: %d idle, %d unused", p.conns.Len(), p.max-p.n))
 		}
@@ -197,13 +197,13 @@ func (p *Pool) close() {
 
 // Close closes any available connections and prevents the Acquiring of any new connections.
 // It returns an error if there are any outstanding connections remaining.
-func (p *Pool) Close() os.Error {
+func (p *Pool) Close() error {
 	p.cond.L.Lock()
 	defer p.cond.L.Unlock()
 	if !p.closed {
 		p.close()
 		if p.n > 0 {
-			return os.NewError(fmt.Sprintf("pool closed but %d connections in use", p.n))
+			return errors.New(fmt.Sprintf("pool closed but %d connections in use", p.n))
 		}
 	}
 	return nil

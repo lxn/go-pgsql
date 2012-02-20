@@ -91,7 +91,7 @@ func (conn *Conn) readAuthenticationRequest() {
 		_, err = md5Hasher.Write([]byte(conn.params.User))
 		panicIfErr(err)
 
-		md5HashHex1 := hex.EncodeToString(md5Hasher.Sum())
+		md5HashHex1 := hex.EncodeToString(md5Hasher.Sum(nil))
 
 		md5Hasher.Reset()
 
@@ -101,7 +101,7 @@ func (conn *Conn) readAuthenticationRequest() {
 		_, err = md5Hasher.Write(salt)
 		panicIfErr(err)
 
-		md5HashHex2 := hex.EncodeToString(md5Hasher.Sum())
+		md5HashHex2 := hex.EncodeToString(md5Hasher.Sum(nil))
 
 		password := "md5" + md5HashHex2
 
@@ -164,7 +164,7 @@ func (conn *Conn) readCommandComplete(rs *ResultSet) {
 	if rs != nil {
 		parts := strings.Split(tag, " ")
 
-		rs.rowsAffected, _ = strconv.Atoi64(parts[len(parts)-1])
+		rs.rowsAffected, _ = strconv.ParseInt(parts[len(parts)-1], 10, 64)
 		rs.currentResultComplete = true
 	}
 }

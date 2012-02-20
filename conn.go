@@ -9,11 +9,14 @@ package pgsql
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // LogLevel is used to control what is written to the log.
@@ -141,7 +144,7 @@ type Conn struct {
 	timestampTimezoneFormat         string
 }
 
-func (conn *Conn) withRecover(funcName string, f func()) (err os.Error) {
+func (conn *Conn) withRecover(funcName string, f func()) (err error) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter(funcName))
 	}
@@ -219,7 +222,7 @@ func (conn *Conn) parseParams(s string) *connParams {
 	params.User = name2value["user"]
 	params.Password = name2value["password"]
 	if params.Password == "" {
-		params.Password,_ = passwordfromfile(params.Host, params.Port, params.Database,params.User)
+		params.Password, _ = passwordfromfile(params.Host, params.Port, params.Database, params.User)
 	}
 	params.TimeoutSeconds, _ = strconv.Atoi(name2value["timeout"])
 
@@ -250,7 +253,7 @@ func (conn *Conn) parseParams(s string) *connParams {
 //	user 		= User to connect as
 //	password	= Password for password based authentication methods
 //	timeout		= Timeout in seconds, 0 or not specified disables timeout (default: 0)
-func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {
+func Connect(connStr string, logLevel LogLevel) (conn *Conn, err error) {
 	newConn := &Conn{}
 
 	newConn.LogLevel = logLevel
@@ -268,14 +271,14 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {
 
 	params := newConn.parseParams(connStr)
 	newConn.params = params
-	
-	var env string    // Reusable environment variable used to capture PG environment variables - PGHOST, PGPORT, PGDATABASE, PGUSER
+
+	var env string // Reusable environment variable used to capture PG environment variables - PGHOST, PGPORT, PGDATABASE, PGUSER
 
 	if params.Host == "" {
 		params.Host = "localhost"
 	}
 	env = os.Getenv("PGHOST")
-	if env  != "" {
+	if env != "" {
 		params.Host = env
 	}
 	if params.Port == 0 {
@@ -300,7 +303,7 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {
 	tcpConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", params.Host, params.Port))
 	panicIfErr(err)
 
-	panicIfErr(tcpConn.SetReadTimeout(int64(params.TimeoutSeconds * 1000 * 1000 * 1000)))
+	panicIfErr(tcpConn.SetDeadline(time.Unix(int64(params.TimeoutSeconds*1000*1000*1000), 0)))
 
 	newConn.tcpConn = tcpConn
 
@@ -329,10 +332,10 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err os.Error) {
 }
 
 // Close closes the connection to the database.
-func (conn *Conn) Close() (err os.Error) {
+func (conn *Conn) Close() (err error) {
 	return conn.withRecover("*Conn.Close", func() {
 		if conn.Status() == StatusDisconnected {
-			err = os.NewError("connection already closed")
+			err = errors.New("connection already closed")
 			conn.logError(LogWarning, err)
 			return
 		}
@@ -345,7 +348,7 @@ func (conn *Conn) Close() (err os.Error) {
 	})
 }
 
-func getpgpassfilename () string {
+func getpgpassfilename() string {
 	var env string
 	env = os.Getenv("PGPASSFILE")
 	if env != "" {
@@ -355,7 +358,7 @@ func getpgpassfilename () string {
 	return fmt.Sprintf("%s/.pgpass", env)
 }
 
-func passwordfromfile (hostname string, port int, dbname string, username string) (string, os.Error) {
+func passwordfromfile(hostname string, port int, dbname string, username string) (string, error) {
 	var sport string
 	var lhostname string
 	if dbname == "" {
@@ -377,22 +380,22 @@ func passwordfromfile (hostname string, port int, dbname string, username string
 	pgfile := getpgpassfilename()
 	fileinfo, err := os.Stat(pgfile)
 	if err != nil {
-		err := os.NewError(fmt.Sprintf("WARNING: password file \"%s\" is not a plain file\n", pgfile))
+		err := errors.New(fmt.Sprintf("WARNING: password file \"%s\" is not a plain file\n", pgfile))
 		return "", err
 	}
-	if (fileinfo.Mode & 077) != 0 {
-		err := os.NewError(fmt.Sprintf("WARNING: password file \"%s\" has group or world access; permissions should be u=rw (0600) or less", pgfile))
+	if (fileinfo.Mode() & 077) != 0 {
+		err := errors.New(fmt.Sprintf("WARNING: password file \"%s\" has group or world access; permissions should be u=rw (0600) or less", pgfile))
 		return "", err
 	}
 	fp, err := os.Open(pgfile)
 	if err != nil {
-		err := os.NewError(fmt.Sprintf("Problem opening pgpass file \"%s\"", pgfile))
+		err := errors.New(fmt.Sprintf("Problem opening pgpass file \"%s\"", pgfile))
 		return "", err
 	}
 	br := bufio.NewReader(fp)
 	for {
 		line, ok := br.ReadString('\n')
-		if ok == os.EOF {
+		if ok == io.EOF {
 			return "", nil
 		}
 		// Now, split the line into pieces
@@ -432,7 +435,7 @@ func (conn *Conn) execute(command string, params ...*Parameter) int64 {
 //
 // If the results of a query are needed, use the
 // Query method instead.
-func (conn *Conn) Execute(command string, params ...*Parameter) (rowsAffected int64, err os.Error) {
+func (conn *Conn) Execute(command string, params ...*Parameter) (rowsAffected int64, err error) {
 	err = conn.withRecover("*Conn.Execute", func() {
 		rowsAffected = conn.execute(command, params...)
 	})
@@ -454,7 +457,7 @@ func (conn *Conn) prepare(command string, params ...*Parameter) *Statement {
 
 // Prepare returns a new prepared Statement, optimized to be executed multiple
 // times with different parameter values.
-func (conn *Conn) Prepare(command string, params ...*Parameter) (stmt *Statement, err os.Error) {
+func (conn *Conn) Prepare(command string, params ...*Parameter) (stmt *Statement, err error) {
 	err = conn.withRecover("*Conn.Prepare", func() {
 		stmt = conn.prepare(command, params...)
 	})
@@ -489,7 +492,7 @@ func (conn *Conn) query(command string, params ...*Parameter) (rs *ResultSet) {
 //
 // The returned ResultSet must be closed before sending another
 // query or command to the server over the same connection.
-func (conn *Conn) Query(command string, params ...*Parameter) (rs *ResultSet, err os.Error) {
+func (conn *Conn) Query(command string, params ...*Parameter) (rs *ResultSet, err error) {
 	err = conn.withRecover("*Conn.Query", func() {
 		rs = conn.query(command, params...)
 	})
@@ -525,7 +528,7 @@ func (conn *Conn) scan(command string, args ...interface{}) (*ResultSet, bool) {
 //
 // The arguments must be of pointer types. If a row has
 // been fetched, fetched will be true, otherwise false.
-func (conn *Conn) Scan(command string, args ...interface{}) (fetched bool, err os.Error) {
+func (conn *Conn) Scan(command string, args ...interface{}) (fetched bool, err error) {
 	err = conn.withRecover("*Conn.Scan", func() {
 		var rs *ResultSet
 		rs, fetched = conn.scan(command, args...)
@@ -553,7 +556,7 @@ func (conn *Conn) TransactionStatus() TransactionStatus {
 // calling WithTransaction, this function immediately returns with an error,
 // without calling f. In case of an active transaction without error,
 // WithTransaction just calls f.
-func (conn *Conn) WithTransaction(isolation IsolationLevel, f func() os.Error) (err os.Error) {
+func (conn *Conn) WithTransaction(isolation IsolationLevel, f func() error) (err error) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.WithTransaction"))
 	}
@@ -603,7 +606,7 @@ func (conn *Conn) WithTransaction(isolation IsolationLevel, f func() os.Error) (
 // is in a failed transaction when calling WithSavepoint, this function
 // immediately returns with an error, without calling f. If no transaction is in
 // progress, instead of creating a savepoint, a new transaction is started.
-func (conn *Conn) WithSavepoint(isolation IsolationLevel, f func() os.Error) (err os.Error) {
+func (conn *Conn) WithSavepoint(isolation IsolationLevel, f func() error) (err error) {
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.WithSavepoint"))
 	}

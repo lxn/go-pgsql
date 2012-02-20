@@ -5,10 +5,10 @@
 package pgsql
 
 import (
-	"big"
 	"encoding/binary"
 	"fmt"
 	"math"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -110,10 +110,10 @@ func (conn *Conn) writeBind(stmt *Statement) {
 			values[i] = string([]byte{val})
 
 		case float32:
-			values[i] = strconv.Ftoa32(val, 'f', -1)
+			values[i] = strconv.FormatFloat(float64(val), 'f', -1, 32)
 
 		case float64:
-			values[i] = strconv.Ftoa64(val, 'f', -1)
+			values[i] = strconv.FormatFloat(val, 'f', -1, 64)
 
 		case int:
 			values[i] = strconv.Itoa(val)
@@ -127,16 +127,16 @@ func (conn *Conn) writeBind(stmt *Statement) {
 		case int64:
 			switch param.typ {
 			case Date:
-				values[i] = time.SecondsToUTC(val).Format("2006-01-02")
+				values[i] = time.Unix(val, 0).UTC().Format("2006-01-02")
 
 			case Time, TimeTZ:
-				values[i] = time.SecondsToUTC(val).Format("15:04:05")
+				values[i] = time.Unix(val, 0).UTC().Format("15:04:05")
 
 			case Timestamp, TimestampTZ:
-				values[i] = time.SecondsToUTC(val).Format("2006-01-02 15:04:05")
+				values[i] = time.Unix(val, 0).UTC().Format("2006-01-02 15:04:05")
 
 			default:
-				values[i] = strconv.Itoa64(val)
+				values[i] = strconv.FormatInt(val, 10)
 			}
 
 		case nil:
@@ -156,7 +156,7 @@ func (conn *Conn) writeBind(stmt *Statement) {
 		case string:
 			values[i] = val
 
-		case *time.Time:
+		case time.Time:
 			switch param.typ {
 			case Date:
 				values[i] = val.Format("2006-01-02")
