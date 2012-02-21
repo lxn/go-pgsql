@@ -168,7 +168,7 @@ func (conn *Conn) writeBind(stmt *Statement) {
 				values[i] = val.Format("2006-01-02 15:04:05")
 
 			default:
-				panic("invalid use of *time.Time")
+				panic("invalid use of time.Time")
 			}
 
 		default:

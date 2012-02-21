@@ -167,9 +167,7 @@ func (p *Parameter) SetValue(v interface{}) (err error) {
 				return
 			}
 
-			t := &time.Time{}
-			*t = val
-			p.value = t
+			p.value = val
 
 		case uint64:
 			p.value = val
