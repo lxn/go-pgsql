@@ -116,14 +116,14 @@ func Test_Connect_InvalidPassword_ExpectConnNil(t *testing.T) {
 	}
 }
 
-func Test_Connect_InvalidPassword_ExpectError28000(t *testing.T) {
+func Test_Connect_InvalidPassword_ExpectErrorClass28(t *testing.T) {
 	conn, err := Connect("dbname=testdatabase user=testuser password=wrongpassword", LogNothing)
 	if err == nil {
 		t.Error("expected err != nil")
 	}
-	// Code 28000 == invalid authorization specification
-	if pgerr, ok := err.(*Error); !ok || pgerr.Code() != "28000" {
-		t.Error("expected *pgsql.Error with code 28000")
+	// Class 28 == invalid authorization specification
+	if pgerr, ok := err.(*Error); !ok || !strings.HasPrefix(pgerr.Code(), "28") {
+		t.Error("expected *pgsql.Error of class 28")
 	}
 	if conn != nil {
 		conn.Close()
