@@ -757,7 +757,7 @@ func (rs *ResultSet) any(ord int) (value interface{}, isNull bool) {
 		value, isNull = rs.string(ord)
 
 	case _DATEOID, _TIMEOID, _TIMETZOID, _TIMESTAMPOID, _TIMESTAMPTZOID:
-		value, isNull = rs.timeSeconds(ord)
+		value, isNull = rs.time(ord)
 
 	case _FLOAT4OID:
 		value, isNull = rs.float32(ord)
@@ -800,10 +800,10 @@ func (rs *ResultSet) any(ord int) (value interface{}, isNull bool) {
 //	Real		float
 //	Smallint	int16
 //	Text		string
-//	Time		int64
-//	TimeTZ		int64
-//	Timestamp	int64
-//	TimestampTZ	int64
+//	Time		time.Time
+//	TimeTZ		time.Time
+//	Timestamp	time.Time
+//	TimestampTZ	time.Time
 //	Varchar		string
 func (rs *ResultSet) Any(ord int) (value interface{}, isNull bool, err error) {
 	err = rs.conn.withRecover("*ResultSet.Any", func() {
