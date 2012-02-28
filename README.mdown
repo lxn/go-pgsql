@@ -31,7 +31,6 @@ Missing Features
 
 go-pgsql is currently missing support for some features, including:
 
-- database/sql
 - authentication types other than MD5
 - SSL encrypted sessions
 - some data types like bytea, ...
