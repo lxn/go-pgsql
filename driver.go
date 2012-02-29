@@ -33,7 +33,7 @@ type sqlConn struct {
 }
 
 func (c *sqlConn) Exec(query string, args []driver.Value) (driver.Result, error) {
-	n, err := c.conn.Execute(query, paramsFromValues(args)...)
+	n, err := c.conn.Execute(query, paramsFromValues(nil, args)...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +75,7 @@ func (s *sqlStmt) NumInput() int {
 }
 
 func (s *sqlStmt) Exec(args []driver.Value) (driver.Result, error) {
-	// FIXME: Reuse existing params
-	s.stmt.params = paramsFromValues(args)
+	s.stmt.params = paramsFromValues(s.stmt.params, args)
 
 	n, err := s.stmt.Execute()
 	if err != nil {
@@ -87,8 +86,7 @@ func (s *sqlStmt) Exec(args []driver.Value) (driver.Result, error) {
 }
 
 func (s *sqlStmt) Query(args []driver.Value) (driver.Rows, error) {
-	// FIXME: Reuse existing params
-	s.stmt.params = paramsFromValues(args)
+	s.stmt.params = paramsFromValues(s.stmt.params, args)
 
 	rs, err := s.stmt.Query()
 	if err != nil {
@@ -158,39 +156,45 @@ func (r *sqlRows) Next(dest []driver.Value) error {
 	return nil
 }
 
-func paramsFromValues(vals []driver.Value) []*Parameter {
-	params := make([]*Parameter, len(vals))
+func paramsFromValues(params []*Parameter, vals []driver.Value) []*Parameter {
+	if params == nil {
+		params = make([]*Parameter, len(vals))
+	}
 
 	for i, val := range vals {
-		var typ Type
+		p := params[i]
 
-		switch val.(type) {
-		case nil:
-			typ = Integer
+		if p == nil {
+			var typ Type
 
-		case bool:
-			typ = Boolean
+			switch val.(type) {
+			case nil:
+				typ = Integer
 
-		case []byte, string:
-			typ = Varchar
+			case bool:
+				typ = Boolean
 
-		case float64:
-			typ = Double
+			case []byte, string:
+				typ = Varchar
 
-		case int64:
-			typ = Bigint
+			case float64:
+				typ = Double
 
-		case time.Time:
-			typ = TimestampTZ
+			case int64:
+				typ = Bigint
 
-		default:
-			panic("unexpected value type")
+			case time.Time:
+				typ = TimestampTZ
+
+			default:
+				panic("unexpected value type")
+			}
+
+			p = NewParameter(fmt.Sprintf("$%d", i), typ)
+			params[i] = p
 		}
 
-		p := NewParameter(fmt.Sprintf("$%d", i), typ)
 		p.SetValue(val)
-
-		params[i] = p
 	}
 
 	return params
