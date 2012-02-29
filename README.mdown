@@ -8,6 +8,8 @@ It partially implements version 3.0 of the
 [PostgreSQL](http://www.postgresql.org) frontend/backend protocol, so it
 should work with servers of version 7.4 and later.
 
+It now supports database/sql in addition to its existing interface.
+
 Installing go-pgsql
 ===================
 
@@ -38,9 +40,6 @@ go-pgsql is currently missing support for some features, including:
 - bulk copy
 - ...
 
-go-pgsql is (at least for now) not thread-safe, so for every goroutine
-that must talk to the same database, a separate Conn is required.
-
 Connection Info
 ================
 
@@ -52,10 +51,3 @@ may be overridden by environment variables at runtime, specifically:
 - PGUSER - user name (defaults to postgres)
 - PGHOST - host name/address (defaults to localhost)
 - PGDATABASE - name of database (defaults to user name if not specified)
-
-
-Time/Timestamp resolution
-=========================
-
-Because the resolution of time.Time is seconds, fractions of seconds are
-silently dropped by `*ResultSet.Time` and `*ResultSet.TimeSeconds`.
