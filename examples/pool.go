@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"log"
 	"sync"
+)
+
+import (
 	"github.com/lxn/go-pgsql"
 )
 

@@ -7,6 +7,9 @@ package main
 import (
 	"fmt"
 	"os"
+)
+
+import (
 	"github.com/lxn/go-pgsql"
 )
 
