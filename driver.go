@@ -157,7 +157,7 @@ func (r *sqlRows) Next(dest []driver.Value) error {
 }
 
 func paramsFromValues(params []*Parameter, vals []driver.Value) []*Parameter {
-	if params == nil {
+	if len(params) < len(vals) {
 		params = make([]*Parameter, len(vals))
 	}
 
