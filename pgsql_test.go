@@ -405,11 +405,11 @@ func Test_Conn_Scan(t *testing.T) {
 		if !x.onSale {
 			t.Error("onSale - have: true, but want: false")
 		}
-		seconds, ok := x.something.(int64)
+		tm, ok := x.something.(time.Time)
 		if !ok {
-			t.Error("something should have type int64")
+			t.Error("something should have type time.Time")
 		} else {
-			dateStr := time.Unix(seconds, 0).UTC().Format(dateFormat)
+			dateStr := tm.Format(dateFormat)
 			if dateStr != "2010-08-20" {
 				t.Errorf("something - have: '%s', but want: '2010-08-20'", dateStr)
 			}
