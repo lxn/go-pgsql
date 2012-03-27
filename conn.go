@@ -647,7 +647,7 @@ func (conn *Conn) updateTimeFormats() {
 	style := conn.runtimeParameters["DateStyle"]
 
 	switch style {
-	case "ISO", "ISO, DMY", "ISO, MDY":
+	case "ISO", "ISO, DMY", "ISO, MDY", "ISO, YMD":
 		conn.dateFormat = "2006-01-02"
 		conn.timeFormat = "15:04:05"
 		conn.timestampFormat = "2006-01-02 15:04:05"

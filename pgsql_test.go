@@ -423,7 +423,7 @@ type dateStyleTest struct {
 
 func Test_DateStyle(t *testing.T) {
 	dateStyles := []string{
-		"ISO", "ISO, DMY", "ISO, MDY",
+		"ISO", "ISO, DMY", "ISO, MDY", "ISO, YMD",
 		"SQL", "SQL, DMY", "SQL, MDY",
 		"Postgres", "Postgres, DMY", "Postgres, MDY",
 		"German", "German, DMY", "German, MDY",
