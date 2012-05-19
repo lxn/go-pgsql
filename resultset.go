@@ -6,6 +6,7 @@ package pgsql
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math"
 	"math/big"
 	"strconv"
@@ -753,7 +754,7 @@ func (rs *ResultSet) any(ord int) (value interface{}, isNull bool) {
 	case _BOOLOID:
 		value, isNull = rs.bool(ord)
 
-	case _CHAROID, _VARCHAROID, _TEXTOID:
+	case _BPCHAROID, _CHAROID, _VARCHAROID, _TEXTOID:
 		value, isNull = rs.string(ord)
 
 	case _DATEOID, _TIMEOID, _TIMETZOID, _TIMESTAMPOID, _TIMESTAMPTZOID:
@@ -778,7 +779,7 @@ func (rs *ResultSet) any(ord int) (value interface{}, isNull bool) {
 		value, isNull = rs.rat(ord)
 
 	default:
-		panic("unexpected field data type")
+		panic(fmt.Sprintf("unexpected field type: field: '%s' OID: %d", rs.fields[ord].name, rs.fields[ord].typeOID))
 	}
 
 	return
