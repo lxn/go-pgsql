@@ -148,6 +148,8 @@ func (r *sqlRows) Next(dest []driver.Value) error {
 
 		if isNull {
 			val = nil
+		} else if s, ok := val.(string); ok {
+			val = ([]byte)(s)
 		}
 
 		dest[i] = val
