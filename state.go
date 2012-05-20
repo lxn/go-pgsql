@@ -80,6 +80,18 @@ func (readyState) execute(stmt *Statement, rs *ResultSet) {
 		defer conn.logExit(conn.logEnter("readyState.execute"))
 	}
 
+	succeeded := false
+	conn.onErrorDontRequireReadyForQuery = true
+	defer func() {
+		conn.onErrorDontRequireReadyForQuery = false
+
+		if !succeeded {
+			conn.writeSync()
+
+			conn.readBackendMessages(nil)
+		}
+	}()
+
 	conn.writeBind(stmt)
 
 	conn.readBackendMessages(rs)
@@ -93,6 +105,8 @@ func (readyState) execute(stmt *Statement, rs *ResultSet) {
 	conn.writeSync()
 
 	conn.state = processingQueryState{}
+
+	succeeded = true
 }
 
 func (readyState) prepare(stmt *Statement) {
