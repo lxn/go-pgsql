@@ -1,7 +1,0 @@
-O=6
-AS=${O}a
-CC=${O}c
-GC=${O}g
-LD=${O}l
-OS=568vq
-CFLAGS=-FVw
