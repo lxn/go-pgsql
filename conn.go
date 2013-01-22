@@ -354,7 +354,7 @@ func (conn *Conn) Close() (err error) {
 
 func (conn *Conn) copyFrom(command string, r io.Reader) int64 {
 	if conn.LogLevel >= LogDebug {
-		defer conn.logExit(conn.logEnter("*Conn.execute"))
+		defer conn.logExit(conn.logEnter("*Conn.copyFrom"))
 	}
 
 	conn.writeQuery(command)
