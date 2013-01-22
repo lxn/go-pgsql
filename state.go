@@ -44,6 +44,16 @@ func (abstractState) query(conn *Conn, rs *ResultSet, sql string) {
 	panic(invalidOpForStateMsg)
 }
 
+// copyState is the state that is active when the connection is used
+// to exchange CopyData messages for bulk import/export.
+type copyState struct {
+	abstractState
+}
+
+func (copyState) code() ConnStatus {
+	return StatusCopy
+}
+
 // disconnectedState is the initial state before a connection is established.
 type disconnectedState struct {
 	abstractState

@@ -4,6 +4,10 @@
 
 package pgsql
 
+import (
+	"fmt"
+)
+
 //------------------------------------------------------------------------------
 
 type backendMessageCode byte
@@ -38,7 +42,7 @@ var backendMsgCode2String map[backendMessageCode]string
 func (x backendMessageCode) String() string {
 	s, ok := backendMsgCode2String[x]
 	if !ok {
-		return "unkown backendMessageCode"
+		return fmt.Sprintf("unknown backendMessageCode: %02x", x)
 	}
 
 	return s
