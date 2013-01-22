@@ -401,10 +401,10 @@ func (conn *Conn) copyFrom(command string, r io.Reader) int64 {
 	return rs.rowsAffected
 }
 
-// CopyIn sends a `COPY table FROM STDIN` SQL command to the server and
+// CopyFrom sends a `COPY table FROM STDIN` SQL command to the server and
 // returns the number of rows affected.
 func (conn *Conn) CopyFrom(command string, r io.Reader) (rowsAffected int64, err error) {
-	err = conn.withRecover("*Conn.CopyIn", func() {
+	err = conn.withRecover("*Conn.CopyFrom", func() {
 		rowsAffected = conn.copyFrom(command, r)
 	})
 
