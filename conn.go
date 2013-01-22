@@ -61,6 +61,7 @@ const (
 	StatusDisconnected ConnStatus = iota
 	StatusReady
 	StatusProcessingQuery
+	StatusCopy
 )
 
 func (s ConnStatus) String() string {
@@ -73,6 +74,9 @@ func (s ConnStatus) String() string {
 
 	case StatusProcessingQuery:
 		return "Processing Query"
+
+	case StatusCopy:
+		return "Bulk Copy"
 	}
 
 	return "Unknown"
@@ -346,6 +350,65 @@ func (conn *Conn) Close() (err error) {
 
 		conn.state = disconnectedState{}
 	})
+}
+
+func (conn *Conn) copyFrom(command string, r io.Reader) int64 {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.execute"))
+	}
+
+	conn.writeQuery(command)
+	conn.readBackendMessages(nil)
+	if stateCode := conn.state.code(); stateCode != StatusCopy {
+		panic("wrong state, expected: StatusCopy, have: " + stateCode.String())
+		return 0
+	}
+
+	// FIXME: magic number; wild guess without any reason.
+	const CopyBufferSize = 32 << 10
+	buf := make([]byte, CopyBufferSize)
+	var nr int
+	var err error
+	for {
+		nr, err = r.Read(buf)
+		if err != nil && err != io.EOF {
+			message := err.Error()
+			conn.writeFrontendMessageCode(_CopyFail)
+			conn.writeInt32(int32(5 + len(message)))
+			conn.writeString0(message)
+			panic(err)
+		}
+		if nr > 0 {
+			conn.writeFrontendMessageCode(_CopyData_FE)
+			conn.writeInt32(int32(4 + nr))
+			conn.write(buf[:nr])
+			conn.flush()
+		}
+		// TODO: peek backend message. Maybe there was error in data
+		// and we can stop sending early.
+		if err == io.EOF {
+			break
+		}
+	}
+	conn.writeFrontendMessageCode(_CopyDone_FE)
+	conn.writeInt32(4)
+	conn.flush()
+
+	rs := newResultSet(conn)
+	conn.readBackendMessages(rs)
+	rs.close()
+
+	return rs.rowsAffected
+}
+
+// CopyIn sends a `COPY table FROM STDIN` SQL command to the server and
+// returns the number of rows affected.
+func (conn *Conn) CopyFrom(command string, r io.Reader) (rowsAffected int64, err error) {
+	err = conn.withRecover("*Conn.CopyIn", func() {
+		rowsAffected = conn.copyFrom(command, r)
+	})
+
+	return
 }
 
 func getpgpassfilename() string {

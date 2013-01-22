@@ -169,6 +169,28 @@ func (conn *Conn) readCommandComplete(rs *ResultSet) {
 	}
 }
 
+// As of PostgreSQL 9.2 (protocol 3.0), CopyOutResponse and CopyBothResponse
+// are exactly the same.
+func (conn *Conn) readCopyInResponse() {
+	if conn.LogLevel >= LogDebug {
+		defer conn.logExit(conn.logEnter("*Conn.readCopyInResponse"))
+	}
+
+	// Just eat message length.
+	conn.readInt32()
+
+	// Just eat overall COPY format. 0 - textual, 1 - binary.
+	conn.readByte()
+
+	numColumns := conn.readInt16()
+	for i := int16(0); i < numColumns; i++ {
+		// Just eat column formats.
+		conn.readInt16()
+	}
+
+	conn.state = copyState{}
+}
+
 func (conn *Conn) readDataRow(rs *ResultSet) {
 	// Just eat message length.
 	conn.readInt32()
@@ -403,6 +425,10 @@ func (conn *Conn) readBackendMessages(rs *ResultSet) {
 
 		case _CommandComplete:
 			conn.readCommandComplete(rs)
+			return
+
+		case _CopyInResponse:
+			conn.readCopyInResponse()
 			return
 
 		case _DataRow:
