@@ -5,6 +5,7 @@
 package pgsql
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math"
@@ -862,7 +863,7 @@ func Test_Query_Exception(t *testing.T) {
 				IF num != 1 THEN
 					RAISE EXCEPTION 'FAIL!';
 				END IF;
-				
+
 				RETURN 1;
 			END;
 			$$ LANGUAGE plpgsql;
@@ -1028,6 +1029,33 @@ func Test_Issue2_Uint64_OutOfRange(t *testing.T) {
 
 		if have != want {
 			t.Errorf("have: %d, but want: %d", have, want)
+		}
+	})
+}
+
+func Test_Issue14_CopyFrom(t *testing.T) {
+	const data = "1\ts1\t\\N\ttrue\t2\n"
+	dataBuf := bytes.NewBufferString(data)
+	withConnLog(t, LogNothing, func(conn *Conn) {
+		if _, err := conn.Execute("TRUNCATE table1;"); err != nil {
+			t.Error("failed to truncate table1:", err)
+			return
+		}
+
+		if n, err := conn.CopyFrom("COPY table1 FROM STDIN;", dataBuf); err != nil && n != 1 {
+			t.Error("COPY failed. err:", err, "n:", n)
+		}
+
+		var b1, b2, b3, b4, b5 bool
+		if _, err := conn.Scan("SELECT id = 1, strreq = 's1', stropt IS NULL, blnreq, i32req = 2 FROM table1;",
+			&b1, &b2, &b3, &b4, &b5); err != nil {
+			t.Error("failed to SELECT table1:", err)
+			return
+		} else {
+			if !(b1 && b2 && b3 && b4 && b5) {
+				t.Error("some columns have incorrect data:", b1, b2, b3, b4, b5)
+				return
+			}
 		}
 	})
 }
