@@ -23,7 +23,7 @@ Using go-pgsql
 ==============
 
 There are some examples in the
-[examples](go-pgsql/tree/master/examples) directory which
+[examples](examples) directory which
 should get you started.
 
 Please open an issue on the bug tracker if you encounter a bug.
