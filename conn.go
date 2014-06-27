@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"strconv"
@@ -304,7 +305,7 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err error) {
 		params.User = env
 	}
 
-	//newConn.log(LogPanic, "FIRST LOG")
+	log.Print("FIRST LOG")
 	tcpConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", params.Host, params.Port))
 	panicIfErr(err)
 
