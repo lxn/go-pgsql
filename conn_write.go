@@ -307,6 +307,7 @@ func (conn *Conn) writeQuery(command string) {
 }
 
 func (conn *Conn) writeStartup() {
+	conn.log(LogDebug, "Inside writeStartup")
 	if conn.LogLevel >= LogDebug {
 		defer conn.logExit(conn.logEnter("*Conn.writeStartup"))
 	}
