@@ -332,6 +332,7 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err error) {
 	newConn.transactionStatus = NotInTransaction
 
 	conn = newConn
+	conn.log(LogPanic, "FIRST LOG")
 
 	return
 }
