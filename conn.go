@@ -17,7 +17,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
+//	"time"
 )
 
 // LogLevel is used to control what is written to the log.
