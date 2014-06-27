@@ -305,7 +305,7 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err error) {
 		params.User = env
 	}
 
-	log.Print("FIRST LOG")
+	log.Print("1st LOG")
 	tcpConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", params.Host, params.Port))
 	panicIfErr(err)
 
@@ -323,8 +323,10 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err error) {
 		newConn.onErrorDontRequireReadyForQuery = false
 	}()
 
+	log.Print("2nd LOG")
 	newConn.writeStartup()
 
+	log.Print("3rd LOG")
 	newConn.readBackendMessages(nil)
 
 	newConn.state = readyState{}
