@@ -305,18 +305,17 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err error) {
 		params.User = env
 	}
 
-	log.Print("1st LOG")
 	tcpConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", params.Host, params.Port))
 	panicIfErr(err)
 
-	log.Printf("TimeoutSeconds: %d", params.TimeoutSeconds)
+	// Handling the timeout using SetDeadline and an absolute date
+	// 0 if no timeout
 	noDeadline := time.Time{}
 	if params.TimeoutSeconds <= 0 {
 		panicIfErr(tcpConn.SetDeadline(noDeadline))
 	} else {
 		panicIfErr(tcpConn.SetDeadline(time.Now().Add(time.Duration(params.TimeoutSeconds)*time.Second)))
 	}
-	//panicIfErr(tcpConn.SetDeadline(time.Unix(int64(params.TimeoutSeconds*1000*1000*1000), 0)))
 
 	newConn.tcpConn = tcpConn
 
@@ -330,10 +329,8 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err error) {
 		newConn.onErrorDontRequireReadyForQuery = false
 	}()
 
-	log.Print("2nd LOG")
 	newConn.writeStartup()
 
-	log.Print("3rd LOG")
 	newConn.readBackendMessages(nil)
 
 	newConn.state = readyState{}
