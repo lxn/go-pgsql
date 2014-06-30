@@ -309,6 +309,12 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err error) {
 	tcpConn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", params.Host, params.Port))
 	panicIfErr(err)
 
+	log.Printf("TimeoutSeconds: %d", TimeoutSeconds)
+	if TimeoutSeconds <= 0 {
+		panicIfErr(tcpConn.SetDeadline(0))
+	} else {
+		panicIfErr(tcpConn.SetDeadline(time.Now().Add(TimeoutSeconds*time.Seconds)))
+	}
 	//panicIfErr(tcpConn.SetDeadline(time.Unix(int64(params.TimeoutSeconds*1000*1000*1000), 0)))
 
 	newConn.tcpConn = tcpConn
