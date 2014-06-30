@@ -314,7 +314,7 @@ func Connect(connStr string, logLevel LogLevel) (conn *Conn, err error) {
 	if params.TimeoutSeconds <= 0 {
 		panicIfErr(tcpConn.SetDeadline(noDeadline))
 	} else {
-		panicIfErr(tcpConn.SetDeadline(time.Now().Add(params.TimeoutSeconds*time.Second)))
+		panicIfErr(tcpConn.SetDeadline(time.Now().Add(time.Duration(params.TimeoutSeconds)*time.Second)))
 	}
 	//panicIfErr(tcpConn.SetDeadline(time.Unix(int64(params.TimeoutSeconds*1000*1000*1000), 0)))
 
